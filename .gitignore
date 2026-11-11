@@ -1,0 +1,10 @@
+.DS_Store
+xcuserdata/
+DerivedData/
+*.xcuserstate
+build/
+.build/
+# Chaves e segredos nunca entram no repositório
+Secrets.xcconfig
+*.env
+.env*
