@@ -14,6 +14,14 @@ O app é construído em fases, cada uma testada no iPhone do Matheus antes da pr
 4. **Fase 3 · conta e assinatura:** login com Apple e Google, os 5 minutos grátis, o teste de 7 dias, os planos e o painel. Depende da conta de desenvolvedor da Apple.
 5. **Fase 4 · acabamento e envio:** conferência das 55 telas contra o canvas, privacidade, teste com leitores pelo TestFlight e envio para a revisão da Apple.
 
+## O projeto
+
+- Abra `Traca.xcodeproj` no Xcode 26 ou mais novo.
+- Identificador do app: `app.traca.ios`. Não muda depois de publicado.
+- Só iPhone, iOS 26 no mínimo, só em retrato e sempre no modo claro.
+- Fontes da marca (Young Serif e Hanken Grotesk) ficam em `Traca/Fontes`, com as licenças OFL.
+- Livros de teste ficam fora do Git, em `~/Documents/traca-livros-teste`.
+
 ## Ferramentas
 
 - App nativo em SwiftUI, só iPhone, com o Liquid Glass do iOS 26.
