@@ -2,7 +2,7 @@ import Foundation
 
 /// Um pedaço do livro de cerca de 5 minutos de voz, sempre terminando no fim de um parágrafo.
 /// É a unidade que vai para o serviço de voz (objetos/narracao.md, atributo Trecho).
-struct Trecho: Codable, Hashable, Identifiable {
+nonisolated struct Trecho: Codable, Hashable, Identifiable {
     /// Posição do trecho no livro: 0 é o primeiro (os 5 minutos grátis).
     let indice: Int
     let primeiroParagrafo: Int
@@ -14,13 +14,13 @@ struct Trecho: Codable, Hashable, Identifiable {
     var paragrafos: ClosedRange<Int> { primeiroParagrafo...ultimoParagrafo }
 }
 
-enum CortadorDeTrechos {
+nonisolated enum CortadorDeTrechos {
     /// Duração-alvo de cada trecho: cerca de 5 minutos (Atlas, objeto Narração).
     static let duracaoAlvo: TimeInterval = 5 * 60
 
     /// Ritmo usado para estimar a duração antes de a voz existir.
     /// É uma estimativa técnica, a calibrar com a voz real da Inworld no teste de escuta.
-    static var palavrasPorMinuto: Double = 150
+    static let palavrasPorMinuto: Double = 150
 
     static var palavrasPorTrecho: Int { Int(duracaoAlvo / 60 * palavrasPorMinuto) }
 

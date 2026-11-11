@@ -6,7 +6,7 @@ import AppKit
 #endif
 
 /// RTF, lido pelo próprio sistema. Linhas com letra bem maior que o texto viram títulos de capítulo.
-enum LeitorRTF {
+nonisolated enum LeitorRTF {
     static func ler(_ dados: Data) throws -> LivroLido {
         guard let doc = try? NSAttributedString(data: dados, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil) else {
             throw ErroDeLeitura.corrompido

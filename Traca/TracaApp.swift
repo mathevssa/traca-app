@@ -4,7 +4,7 @@ import SwiftUI
 struct TracaApp: App {
     var body: some Scene {
         WindowGroup {
-            TelaInicial()
+            TelaDeTeste()
                 // O MVP é sempre claro (marca.md, "Linguagem visual do app").
                 .preferredColorScheme(.light)
         }

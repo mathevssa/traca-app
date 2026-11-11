@@ -10,7 +10,7 @@ import NaturalLanguage
 
 /// Um ponto exato do livro: o parágrafo e a letra dentro dele.
 /// É o que guarda a posição atual, as marcações e o começo e o fim de cada trecho.
-struct Posicao: Codable, Hashable, Comparable {
+nonisolated struct Posicao: Codable, Hashable, Comparable {
     /// Índice do parágrafo na lista de parágrafos do livro.
     var paragrafo: Int
     /// Distância, em unidades UTF-16, desde o começo do parágrafo.
@@ -24,7 +24,7 @@ struct Posicao: Codable, Hashable, Comparable {
     }
 }
 
-struct Paragrafo: Codable, Hashable {
+nonisolated struct Paragrafo: Codable, Hashable {
     enum Tipo: String, Codable {
         /// Texto do livro, que a voz lê.
         case corpo
@@ -36,13 +36,13 @@ struct Paragrafo: Codable, Hashable {
     var tipo: Tipo = .corpo
 }
 
-struct Capitulo: Codable, Hashable {
+nonisolated struct Capitulo: Codable, Hashable {
     var titulo: String
     /// O parágrafo onde o capítulo começa. O capítulo vai até o começo do próximo.
     var primeiroParagrafo: Int
 }
 
-struct TextoDoLivro: Codable, Hashable {
+nonisolated struct TextoDoLivro: Codable, Hashable {
     var paragrafos: [Paragrafo]
     var capitulos: [Capitulo]
 
@@ -127,7 +127,7 @@ struct TextoDoLivro: Codable, Hashable {
 
 // MARK: - Frases e palavras
 
-extension Paragrafo {
+nonisolated extension Paragrafo {
     /// As frases do parágrafo, como intervalos em UTF-16.
     /// Servem para tocar numa frase e a voz ir até ela, e para os 5 minutos grátis
     /// pararem no fim de uma frase.
@@ -146,7 +146,7 @@ extension Paragrafo {
 
 // MARK: - Capítulos reconhecidos no próprio texto
 
-enum ReconhecedorDeCapitulos {
+nonisolated enum ReconhecedorDeCapitulos {
     /// Quando o arquivo não tem sumário (comum em PDF e TXT), procura títulos como
     /// "Capítulo 1", "CAPÍTULO XII", "Parte II" ou "Cap. 3" no começo de parágrafos curtos.
     /// Regra do atributo Capítulos em objetos/livro.md.

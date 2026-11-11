@@ -2,6 +2,7 @@ import Testing
 import Foundation
 @testable import Traca
 
+@MainActor
 struct VozDoIPhoneTests {
     let texto = TextoDoLivro(paragrafos: [
         Paragrafo(texto: "Uma noite destas, vindo da cidade para o Engenho Novo, encontrei no trem da Central um rapaz aqui do bairro."),

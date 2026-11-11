@@ -2,7 +2,7 @@ import Foundation
 
 /// Texto puro. Descobre a codificação, separa os parágrafos e tira o cabeçalho
 /// e o rodapé do Project Gutenberg, que não fazem parte do livro.
-enum LeitorTXT {
+nonisolated enum LeitorTXT {
     static func ler(_ dados: Data) throws -> LivroLido {
         guard var s = String(data: dados, encoding: .utf8) ?? String(data: dados, encoding: .windowsCP1252) else {
             throw ErroDeLeitura.corrompido

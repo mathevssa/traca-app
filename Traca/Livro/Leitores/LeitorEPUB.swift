@@ -1,7 +1,7 @@
 import Foundation
 
 /// EPUB 2 e 3. Lê a ordem de leitura (spine), o sumário (nav ou NCX), título, autor e capa.
-enum LeitorEPUB {
+nonisolated enum LeitorEPUB {
     static func ler(_ dados: Data) throws -> LivroLido {
         guard let zip = try? ArquivoZip(dados: dados) else { throw ErroDeLeitura.corrompido }
         if try temDRM(zip) { throw ErroDeLeitura.drm }

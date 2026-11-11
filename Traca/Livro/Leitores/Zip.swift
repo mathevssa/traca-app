@@ -3,7 +3,7 @@ import Compression
 
 /// Leitor mínimo de arquivos ZIP (o EPUB é um ZIP por dentro).
 /// Usa só o que já vem no iOS, sem biblioteca de terceiros.
-struct ArquivoZip {
+nonisolated struct ArquivoZip {
     struct Entrada {
         let nome: String
         let metodo: UInt16

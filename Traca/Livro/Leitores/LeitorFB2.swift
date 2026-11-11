@@ -1,7 +1,7 @@
 import Foundation
 
 /// FictionBook 2 (XML). Cada <section> com <title> é um capítulo.
-enum LeitorFB2 {
+nonisolated enum LeitorFB2 {
     static func ler(_ dados: Data) throws -> LivroLido {
         guard let xml = NoXML.ler(dados), let fb = xml.primeiro("FictionBook") ?? xml.filhos.first else { throw ErroDeLeitura.corrompido }
         let info = fb.primeiro("title-info")

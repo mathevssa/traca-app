@@ -7,7 +7,7 @@ import Foundation
 /// - MOBI clássico: HTML antigo, com âncoras "filepos" que apontam para posições do texto;
 /// - AZW3 (KF8): HTML moderno, dividido em pedaços, seguido de CSS.
 /// Arquivos "combo" trazem os dois; nesse caso lemos a parte MOBI clássica, que é mais simples.
-enum LeitorMOBI {
+nonisolated enum LeitorMOBI {
     static func ler(_ dados: Data, formato: Formato) throws -> LivroLido {
         let b = [UInt8](dados)
         guard b.count > 78 else { throw ErroDeLeitura.corrompido }
@@ -203,7 +203,7 @@ enum LeitorMOBI {
 }
 
 /// Compressão HUFF/CDIC, usada por arquivos gerados pelo Kindlegen.
-struct HuffCdic {
+nonisolated struct HuffCdic {
     private var dict1: [(codelen: Int, term: Bool, maxcode: UInt64)] = []
     private var mincode: [UInt64] = Array(repeating: 0, count: 33)
     private var maxcode: [UInt64] = Array(repeating: 0, count: 33)

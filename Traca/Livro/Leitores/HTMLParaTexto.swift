@@ -2,7 +2,7 @@ import Foundation
 
 /// Transforma HTML (de EPUB, MOBI e AZW3) em parágrafos.
 /// É tolerante: não exige HTML bem formado, porque arquivos MOBI costumam ter tags quebradas.
-struct HTMLParaTexto {
+nonisolated struct HTMLParaTexto {
     /// Parágrafos encontrados, em ordem.
     private(set) var paragrafos: [Paragrafo] = []
     /// Para cada âncora (atributo id, name ou filepos), o parágrafo em que ela aparece.

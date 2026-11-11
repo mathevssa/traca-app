@@ -2,7 +2,7 @@ import Foundation
 
 /// O momento do áudio em que uma palavra começa a ser dita.
 /// É o que faz o texto acompanhar a voz (objetos/narracao.md, atributo Marcação de tempo).
-struct MarcaDeTempo: Codable, Hashable {
+nonisolated struct MarcaDeTempo: Codable, Hashable {
     let paragrafo: Int
     /// Onde está a palavra dentro do parágrafo, em unidades UTF-16.
     let local: Int
@@ -12,7 +12,7 @@ struct MarcaDeTempo: Codable, Hashable {
 }
 
 /// O resultado de gerar a voz de um trecho: o arquivo de áudio e o tempo de cada palavra.
-struct AudioGerado: Codable, Hashable {
+nonisolated struct AudioGerado: Codable, Hashable {
     let trecho: Int
     let voz: String
     let arquivo: URL
@@ -21,7 +21,7 @@ struct AudioGerado: Codable, Hashable {
 }
 
 /// Uma voz disponível para o leitor escolher.
-struct OpcaoDeVoz: Hashable, Identifiable {
+nonisolated struct OpcaoDeVoz: Hashable, Identifiable {
     let id: String
     let nome: String
 }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Os formatos aceitos na V1 (Constituição, princípio "Abre os formatos comuns de ebook").
-enum Formato: String, Codable, CaseIterable {
+nonisolated enum Formato: String, Codable, CaseIterable {
     case epub = "EPUB", pdf = "PDF", mobi = "MOBI", azw3 = "AZW3", fb2 = "FB2", txt = "TXT", rtf = "RTF"
 
     init?(extensao: String) {
@@ -19,7 +19,7 @@ enum Formato: String, Codable, CaseIterable {
 }
 
 /// O que sai da leitura de um arquivo: os metadados e o texto no formato único.
-struct LivroLido {
+nonisolated struct LivroLido {
     var titulo: String?
     var autor: String?
     var capa: Data?
@@ -28,14 +28,14 @@ struct LivroLido {
 }
 
 /// Os três motivos de erro de importação, com mensagens em fluxos/importar-e-excluir-livros.md.
-enum ErroDeLeitura: Error, Equatable {
+nonisolated enum ErroDeLeitura: Error, Equatable {
     case drm
     case corrompido
     case formatoNaoAceito
 }
 
 /// A porta de entrada: recebe um arquivo e devolve o livro no formato único.
-enum LeitorDeLivros {
+nonisolated enum LeitorDeLivros {
     static func ler(_ url: URL) throws -> LivroLido {
         guard let formato = Formato(extensao: url.pathExtension) else { throw ErroDeLeitura.formatoNaoAceito }
         let dados: Data
@@ -60,7 +60,7 @@ enum LeitorDeLivros {
 
 // MARK: - Árvore XML simples, para OPF, NCX, nav do EPUB e FB2
 
-final class NoXML {
+nonisolated final class NoXML {
     let nome: String
     let atributos: [String: String]
     var filhos: [NoXML] = []
@@ -107,7 +107,7 @@ final class NoXML {
     }
 }
 
-extension String {
+nonisolated extension String {
     /// Resolve um caminho relativo dentro do EPUB ("../Text/cap1.xhtml").
     func resolvido(relativoA base: String) -> String {
         let semAncora = self.split(separator: "#", maxSplits: 1).first.map(String.init) ?? self

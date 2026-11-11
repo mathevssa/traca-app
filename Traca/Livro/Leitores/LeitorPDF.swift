@@ -9,7 +9,7 @@ import PDFKit
 /// - percebe páginas em duas colunas e lê a coluna da esquerda antes da da direita;
 /// - junta as linhas em parágrafos, pelo recuo, pelo espaço entre linhas e pela pontuação;
 /// - junta a palavra cortada com hífen no fim da linha ("pala-" + "vra").
-enum LeitorPDF {
+nonisolated enum LeitorPDF {
     struct Linha {
         var texto: String
         var x: CGFloat, y: CGFloat, largura: CGFloat, altura: CGFloat
