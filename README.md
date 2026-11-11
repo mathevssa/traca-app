@@ -20,7 +20,7 @@ O app é construído em fases, cada uma testada no iPhone do Matheus antes da pr
 - Identificador do app: `app.traca.ios`. Não muda depois de publicado.
 - Só iPhone, iOS 26 no mínimo, só em retrato e sempre no modo claro.
 - Fontes da marca (Young Serif e Hanken Grotesk) ficam em `Traca/Fontes`, com as licenças OFL.
-- Livros de teste ficam fora do Git, em `~/Documents/traca-livros-teste`.
+- Livros de teste ficam fora do Git, em `~/traca-livros-teste` (fora de Documentos, que o macOS bloqueia para o simulador). Sem eles, os testes de leitura são pulados.
 
 ## Ferramentas
 
