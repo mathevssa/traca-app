@@ -1,0 +1,5 @@
+// Configuração do projeto, guardada no Git.
+// A conta de desenvolvedor (DEVELOPMENT_TEAM) é pessoal e fica em Equipe.xcconfig,
+// que só existe no Mac de quem compila e é ignorado pelo Git.
+// Modelo: copie Equipe.exemplo.xcconfig para Equipe.xcconfig e preencha.
+#include? "Equipe.xcconfig"

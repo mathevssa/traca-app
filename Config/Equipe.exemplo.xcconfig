@@ -1,0 +1,3 @@
+// Copie este arquivo para Equipe.xcconfig (que o Git ignora) e troque pelo código
+// da sua conta de desenvolvedor da Apple (Xcode > Settings > Accounts).
+DEVELOPMENT_TEAM = SEU_CODIGO_AQUI

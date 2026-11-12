@@ -17,6 +17,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A58A04FDE306EC7A765B661F /* Projeto.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Projeto.xcconfig; sourceTree = "<group>"; };
 		5141EFFF35ACD6C51F274E4D /* Traca.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Traca.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		68D128FAC7073081D8355714 /* TracaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TracaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -48,14 +49,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		DF82406CD28CB9CE6B4468BA = {
+		B9F937D39496D52E76705033 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		B9F937D39496D52E76705033 = {
+		DF82406CD28CB9CE6B4468BA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -68,6 +69,7 @@
 		186495F7DA296BF880DF3A22 = {
 			isa = PBXGroup;
 			children = (
+				A58A04FDE306EC7A765B661F /* Projeto.xcconfig */,
 				3DFE442710E429386E53D077 /* Traca */,
 				CEC4290FD49D87B0F83D52CD /* TracaTests */,
 				D71BD8A0B6A6AA54EDBA6454 /* Products */,
@@ -86,31 +88,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D0A89E62449BF8621A109317 /* Traca */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = B74AE09E1A26CA232EE39334;
-			buildPhases = (
-				8A5FA62F001E6CD7CC7A4E89 /* Sources */,
-				DF82406CD28CB9CE6B4468BA /* Frameworks */,
-				22B8866AF8AC793A3389D80F /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				3DFE442710E429386E53D077 /* Traca */,
-			);
-			name = Traca;
-			packageProductDependencies = (
-			);
-			productName = Traca;
-			productReference = 5141EFFF35ACD6C51F274E4D /* Traca.app */;
-			productType = "com.apple.product-type.application";
-		};
 		4D4172DF9FFDA6B55567010D /* TracaTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 18D52A8B02E9DA6C022F3383;
+			buildConfigurationList = 18D52A8B02E9DA6C022F3383 /* Build configuration list for PBXNativeTarget "TracaTests" */;
 			buildPhases = (
 				1063F6DBE95CE9A1601B3915 /* Sources */,
 				B9F937D39496D52E76705033 /* Frameworks */,
@@ -131,6 +111,28 @@
 			productReference = 68D128FAC7073081D8355714 /* TracaTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		D0A89E62449BF8621A109317 /* Traca */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B74AE09E1A26CA232EE39334 /* Build configuration list for PBXNativeTarget "Traca" */;
+			buildPhases = (
+				8A5FA62F001E6CD7CC7A4E89 /* Sources */,
+				DF82406CD28CB9CE6B4468BA /* Frameworks */,
+				22B8866AF8AC793A3389D80F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3DFE442710E429386E53D077 /* Traca */,
+			);
+			name = Traca;
+			packageProductDependencies = (
+			);
+			productName = Traca;
+			productReference = 5141EFFF35ACD6C51F274E4D /* Traca.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -141,16 +143,16 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					D0A89E62449BF8621A109317 = {
-						CreatedOnToolsVersion = 26.0;
-					};
 					4D4172DF9FFDA6B55567010D = {
 						CreatedOnToolsVersion = 26.0;
 						TestTargetID = D0A89E62449BF8621A109317;
 					};
+					D0A89E62449BF8621A109317 = {
+						CreatedOnToolsVersion = 26.0;
+					};
 				};
 			};
-			buildConfigurationList = B99ABB2C414225E7F661F0A1;
+			buildConfigurationList = B99ABB2C414225E7F661F0A1 /* Build configuration list for PBXProject "Traca" */;
 			developmentRegion = "pt-BR";
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -171,14 +173,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		22B8866AF8AC793A3389D80F = {
+		1ACB1F24079F0C7AB9A92591 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1ACB1F24079F0C7AB9A92591 = {
+		22B8866AF8AC793A3389D80F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -188,14 +190,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		8A5FA62F001E6CD7CC7A4E89 = {
+		1063F6DBE95CE9A1601B3915 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1063F6DBE95CE9A1601B3915 = {
+		8A5FA62F001E6CD7CC7A4E89 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -213,95 +215,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		FA2B7CA42DF6B57AEE93B14C /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		AB015BEF96F21DB37A5B2A9A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		DF482EB8CDB49D8AD8100F4F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Traca/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Traça";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = app.traca.ios;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
 		6B3131B2FBD70A00CCD987AE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -378,19 +291,110 @@
 			};
 			name = Release;
 		};
+		AB015BEF96F21DB37A5B2A9A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Projeto.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DF482EB8CDB49D8AD8100F4F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Traca/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Traça";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = app.traca.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FA2B7CA42DF6B57AEE93B14C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Projeto.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		B99ABB2C414225E7F661F0A1 = {
+		18D52A8B02E9DA6C022F3383 /* Build configuration list for PBXNativeTarget "TracaTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				FA2B7CA42DF6B57AEE93B14C /* Debug */,
-				AB015BEF96F21DB37A5B2A9A /* Release */,
+				8C2550BB07397B6CAA3C38C6 /* Debug */,
+				A17C136DC29A59221304B332 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B74AE09E1A26CA232EE39334 = {
+		B74AE09E1A26CA232EE39334 /* Build configuration list for PBXNativeTarget "Traca" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				DF482EB8CDB49D8AD8100F4F /* Debug */,
@@ -399,11 +403,11 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		18D52A8B02E9DA6C022F3383 = {
+		B99ABB2C414225E7F661F0A1 /* Build configuration list for PBXProject "Traca" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				8C2550BB07397B6CAA3C38C6 /* Debug */,
-				A17C136DC29A59221304B332 /* Release */,
+				FA2B7CA42DF6B57AEE93B14C /* Debug */,
+				AB015BEF96F21DB37A5B2A9A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

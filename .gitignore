@@ -8,3 +8,5 @@ build/
 Secrets.xcconfig
 *.env
 .env*
+# Conta de desenvolvedor da Apple, pessoal
+Config/Equipe.xcconfig
