@@ -34,4 +34,21 @@ struct VozDoIPhoneTests {
         }
         #expect(lua != nil)
     }
+
+    /// No iPhone a voz mandava um "pedaço vazio" entre parágrafos, e o áudio era cortado ali.
+    /// Este teste garante que todos os parágrafos do trecho entram no áudio.
+    @Test func naoCortaOAudioEntreParagrafos() async throws {
+        let paragrafos = (1...6).map { n in
+            Paragrafo(texto: "Este é o parágrafo número \(n). —Medo! Ora, medo! A verdade é que eu só vim a aprender equitação mais tarde.")
+        }
+        let livro = TextoDoLivro(paragrafos: paragrafos)
+        let voz = VozDoIPhone()
+        let id = try #require(voz.vozes.first?.id)
+        let trecho = Trecho(indice: 0, primeiroParagrafo: 0, ultimoParagrafo: 5, palavras: 120)
+        let destino = FileManager.default.temporaryDirectory.appendingPathComponent("trecho-varios.caf")
+        let audio = try await voz.gerar(trecho, de: livro, voz: id, destino: destino)
+        #expect(Set(audio.marcas.map(\.paragrafo)) == Set(0...5))
+        #expect((audio.marcas.last?.inicio ?? .infinity) < audio.duracao)
+        #expect(audio.duracao > 25)
+    }
 }

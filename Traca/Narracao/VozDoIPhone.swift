@@ -69,11 +69,9 @@ private nonisolated final class Coletor: NSObject, AVSpeechSynthesizerDelegate, 
         trava.lock()
         defer { trava.unlock() }
         guard !terminou else { return }
-        if pcm.frameLength == 0 {
-            // Pedaço vazio é o aviso de que a voz terminou.
-            terminar(nil)
-            return
-        }
+        // Pedaço vazio não quer dizer que acabou: no iPhone ele aparece no meio da gravação,
+        // entre parágrafos. O fim de verdade é o aviso "terminei de falar" (didFinish).
+        if pcm.frameLength == 0 { return }
         do {
             if arquivo == nil {
                 taxa = pcm.format.sampleRate
@@ -91,6 +89,18 @@ private nonisolated final class Coletor: NSObject, AVSpeechSynthesizerDelegate, 
         trava.lock()
         palavras.append((intervalo, amostras))
         trava.unlock()
+    }
+
+    func speechSynthesizer(_ s: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        trava.lock()
+        defer { trava.unlock() }
+        if !terminou { terminar(nil) }
+    }
+
+    func speechSynthesizer(_ s: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        trava.lock()
+        defer { trava.unlock() }
+        if !terminou { terminar(VozDoIPhone.Erro.semAudio) }
     }
 
     func resultado() -> (AVAudioFramePosition, Double, [(intervalo: NSRange, amostra: AVAudioFramePosition)]) {
