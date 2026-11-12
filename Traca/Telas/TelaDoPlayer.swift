@@ -7,6 +7,7 @@ struct TelaDoPlayer: View {
     let tocador: Tocador
     @Environment(\.dismiss) private var fechar
     @State private var seguindoAVoz = true
+    @State private var mostrandoVelocidade = false
 
     var body: some View {
         ScrollViewReader { rolagem in
@@ -56,7 +57,9 @@ struct TelaDoPlayer: View {
                         .glassEffect(.regular, in: Capsule())
                     }
                     if tocador.estado == .erro { avisoDeErro }
-                    BarraDoPlayer(tocador: tocador)
+                    BarraDoPlayer(tocador: tocador) {
+                        withAnimation(.spring(duration: 0.35)) { mostrandoVelocidade = true }
+                    }
                 }
                 .padding(.horizontal, 10)
                 .padding(.bottom, 10)
@@ -64,6 +67,23 @@ struct TelaDoPlayer: View {
         }
         .background(Cor.fundo)
         .safeAreaInset(edge: .top) { topo }
+        .overlay {
+            // Painel de velocidade (OUV-004) por cima do player, com o fundo levemente escurecido.
+            if mostrandoVelocidade {
+                ZStack(alignment: .bottom) {
+                    Cor.texto.opacity(0.18)
+                        .ignoresSafeArea()
+                        .onTapGesture { fecharVelocidade() }
+                        .accessibilityHidden(true)
+                        .transition(.opacity)
+                    PainelDeVelocidade(tocador: tocador, fechar: fecharVelocidade)
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 10)
+                        .gesture(DragGesture().onEnded { if $0.translation.height > 60 { fecharVelocidade() } })
+                        .transition(.move(edge: .bottom))
+                }
+            }
+        }
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -94,6 +114,10 @@ struct TelaDoPlayer: View {
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
         .background(Cor.fundo.opacity(0.92))
+    }
+
+    private func fecharVelocidade() {
+        withAnimation(.spring(duration: 0.3)) { mostrandoVelocidade = false }
     }
 
     private var tituloDoCapitulo: String {
@@ -182,6 +206,7 @@ struct ParagrafoView: View, Equatable {
 /// Barra de controles em vidro (OUV-001): progresso, velocidade, voltar 15, play, avançar 15.
 struct BarraDoPlayer: View {
     let tocador: Tocador
+    let abrirVelocidade: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
@@ -203,15 +228,20 @@ struct BarraDoPlayer: View {
             .padding(.horizontal, 6)
 
             HStack {
-                Button { trocarVelocidade() } label: {
-                    Text(velocidadeTexto)
-                        .font(Fonte.ui(15, .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Cor.texto)
-                        .frame(minWidth: 60, minHeight: 44)
-                        .background(.white.opacity(0.55), in: Capsule())
+                Button(action: abrirVelocidade) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gauge.with.needle")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(Tocador.rotulo(tocador.velocidade))
+                            .font(Fonte.ui(15, .semibold))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(Cor.texto)
+                    .padding(.horizontal, 10)
+                    .frame(minWidth: 60, minHeight: 44)
+                    .background(.white.opacity(0.55), in: Capsule())
                 }
-                .accessibilityLabel("Velocidade: \(velocidadeTexto)")
+                .accessibilityLabel("Velocidade: \(Tocador.rotulo(tocador.velocidade).replacingOccurrences(of: "x", with: " vez"))")
                 Spacer()
                 botaoDeSalto("gobackward.15", "Voltar 15 segundos") { tocador.pular(-15) }
                 Spacer()
@@ -249,18 +279,6 @@ struct BarraDoPlayer: View {
                 .frame(width: 52, height: 52)
         }
         .accessibilityLabel(rotulo)
-    }
-
-    private var velocidadeTexto: String {
-        let v = tocador.velocidade
-        let texto = v == v.rounded() ? String(Int(v)) : String(format: "%.2f", v).replacingOccurrences(of: "0$", with: "", options: .regularExpression)
-        return texto.replacingOccurrences(of: ".", with: ",") + "x"
-    }
-
-    private func trocarVelocidade() {
-        let lista = Tocador.velocidades
-        let i = lista.firstIndex(of: tocador.velocidade) ?? 1
-        tocador.velocidade = lista[(i + 1) % lista.count]
     }
 
     private func tempo(_ s: TimeInterval) -> String {

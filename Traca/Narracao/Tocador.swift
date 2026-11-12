@@ -24,6 +24,14 @@ final class Tocador {
 
     /// Velocidade de 0,75x a 2x, em passos de 0,25x (fluxo Ouvir um livro).
     static let velocidades: [Float] = [0.75, 1, 1.25, 1.5, 1.75, 2]
+
+    /// Como a velocidade aparece na tela: "0,75x", "1x", "1,25x", "1,5x", "2x".
+    static func rotulo(_ v: Float) -> String {
+        var t = String(format: "%.2f", v)
+        while t.hasSuffix("0") { t.removeLast() }
+        if t.hasSuffix(".") { t.removeLast() }
+        return t.replacingOccurrences(of: ".", with: ",") + "x"
+    }
     var velocidade: Float = 1 {
         didSet {
             player.defaultRate = velocidade
