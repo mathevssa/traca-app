@@ -14,14 +14,12 @@ struct TelaDoPlayer: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 22) {
                     ForEach(Array(tocador.livro.texto.paragrafos.enumerated()), id: \.offset) { i, p in
-                        ParagrafoView(paragrafo: p, estado: estado(de: i))
-                            .id(i)
-                            .contentShape(Rectangle())
-                            // Tocar num parágrafo leva a voz para o começo dele.
-                            .onTapGesture {
-                                seguindoAVoz = true
-                                tocador.tocar(aPartirDoParagrafo: i)
-                            }
+                        // Tocar numa frase leva a voz para o começo dela (fluxo Ouvir um livro).
+                        ParagrafoView(paragrafo: p, estado: estado(de: i)) { local in
+                            seguindoAVoz = true
+                            tocador.tocar(aPartirDoParagrafo: i, local: local)
+                        }
+                        .id(i)
                     }
                 }
                 .padding(.horizontal, 26)
@@ -155,6 +153,12 @@ struct ParagrafoView: View, Equatable {
 
     let paragrafo: Paragrafo
     let estado: Estado
+    /// Recebe a posição (dentro do parágrafo) do começo da frase tocada.
+    var aoTocarFrase: (Int) -> Void = { _ in }
+
+    static func == (a: ParagrafoView, b: ParagrafoView) -> Bool {
+        a.paragrafo == b.paragrafo && a.estado == b.estado
+    }
 
     var body: some View {
         if paragrafo.tipo == .titulo {
@@ -164,12 +168,63 @@ struct ParagrafoView: View, Equatable {
                 .foregroundStyle(Cor.textoSecundario)
                 .padding(.top, 18)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture { aoTocarFrase(0) }
         } else {
-            Text(textoComDestaque)
+            textoPorFrases
                 .font(Fonte.leitura)
                 .lineSpacing(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // O iOS informa onde cada pedaço do texto foi desenhado; com isso, o toque
+                // vira a frase que estava debaixo do dedo.
+                .overlayPreferenceValue(Text.LayoutKey.self) { desenhos in
+                    GeometryReader { geo in
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { ponto in
+                                aoTocarFrase(frase(em: ponto, desenhos: desenhos, geo: geo) ?? 0)
+                            }
+                    }
+                }
         }
+    }
+
+    /// O parágrafo montado frase por frase, cada uma marcada com onde ela começa.
+    private var textoPorFrases: Text {
+        let estilizado = textoComDestaque
+        let texto = paragrafo.texto
+        let total = (texto as NSString).length
+        var inicios = paragrafo.frases.map(\.location).filter { $0 < total }
+        if inicios.first != 0 { inicios.insert(0, at: 0) }
+        var resultado = Text("")
+        for (k, inicio) in inicios.enumerated() {
+            let fim = k + 1 < inicios.count ? inicios[k + 1] : total
+            guard fim > inicio, let rs = Range(NSRange(location: inicio, length: fim - inicio), in: texto),
+                  let ra = Range(rs, in: estilizado) else { continue }
+            let pedaco = Text(AttributedString(estilizado[ra])).customAttribute(InicioDaFrase(local: inicio))
+            resultado = Text("\(resultado)\(pedaco)")
+        }
+        return resultado
+    }
+
+    /// Acha a frase desenhada no ponto tocado. Toque no espaço entre linhas vai para a frase mais perto.
+    private func frase(em ponto: CGPoint, desenhos: Text.LayoutKey.Value, geo: GeometryProxy) -> Int? {
+        var melhor: (distancia: CGFloat, local: Int)?
+        for d in desenhos {
+            let origem = geo[d.origin]
+            for linha in d.layout {
+                for pedaco in linha {
+                    guard let marca = pedaco[InicioDaFrase.self] else { continue }
+                    let r = pedaco.typographicBounds.rect.offsetBy(dx: origem.x, dy: origem.y)
+                    let dx = max(r.minX - ponto.x, 0, ponto.x - r.maxX)
+                    let dy = max(r.minY - ponto.y, 0, ponto.y - r.maxY)
+                    let distancia = dy * 4 + dx // a linha certa importa mais que a coluna
+                    if distancia == 0 { return marca.local }
+                    if melhor == nil || distancia < melhor!.distancia { melhor = (distancia, marca.local) }
+                }
+            }
+        }
+        return melhor?.local
     }
 
     /// No parágrafo atual: o que já foi lido fica mais claro, a frase falada ganha fundo
@@ -201,6 +256,11 @@ struct ParagrafoView: View, Equatable {
         }
         return a
     }
+}
+
+/// Marca invisível em cada frase do texto: onde ela começa dentro do parágrafo.
+struct InicioDaFrase: TextAttribute {
+    let local: Int
 }
 
 /// Barra de controles em vidro (OUV-001): progresso, velocidade, voltar 15, play, avançar 15.

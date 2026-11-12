@@ -55,6 +55,7 @@ final class Tocador {
     private var observadorDeTempo: Any?
     private var observadores: [NSObjectProtocol] = []
     private var ultimoPedidoComErro: (paragrafo: Int, local: Int)?
+    private var saltoPendente: TimeInterval?
 
     init(livro: LivroLido, voz: ServicoDeVoz, idDaVoz: String) {
         self.livro = livro
@@ -129,11 +130,17 @@ final class Tocador {
     }
 
     /// Volta ou avança 15 segundos dentro do trecho que está tocando.
+    /// Toques seguidos somam a partir do último ponto pedido, mesmo que o salto anterior
+    /// ainda não tenha terminado: dois toques são sempre 30 segundos.
     func pular(_ segundos: TimeInterval) {
         guard let item = player.currentItem else { return }
-        let alvo = min(max(0, item.currentTime().seconds + segundos), max(0, item.duration.seconds - 0.1))
+        let partida = saltoPendente ?? item.currentTime().seconds
+        let alvo = min(max(0, partida + segundos), max(0, item.duration.seconds - 0.1))
+        saltoPendente = alvo
         Task {
             await player.seek(to: CMTime(seconds: alvo, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+            if saltoPendente == alvo { saltoPendente = nil }
+            atualizar(tempo: alvo)
             atualizarAgoraTocando()
         }
     }
