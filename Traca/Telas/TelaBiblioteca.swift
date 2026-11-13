@@ -613,7 +613,7 @@ struct MenuDoLivro: View {
             }
         }
         .padding(EdgeInsets(top: 10, leading: 18, bottom: 18, trailing: 18))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+        .vidroDePainel()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Opções do livro \(livro.titulo)")
     }
@@ -661,7 +661,7 @@ struct DialogoExcluirLivro: View {
         }
         .multilineTextAlignment(.center)
         .padding(EdgeInsets(top: 22, leading: 18, bottom: 16, trailing: 18))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+        .vidroDePainel()
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
     }

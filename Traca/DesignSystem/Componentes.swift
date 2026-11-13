@@ -130,3 +130,12 @@ struct Escurecimento: View {
             .transition(.opacity)
     }
 }
+
+extension View {
+    /// Vidro dos painéis e diálogos (glass.light do DS-01, com creme a 75–78%): mais encorpado
+    /// que o vidro da barra, para o texto do painel não brigar com o que está por baixo.
+    func vidroDePainel(raio: CGFloat = 34) -> some View {
+        background(Paleta.neutro50.opacity(0.86), in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: raio, style: .continuous))
+    }
+}

@@ -128,7 +128,7 @@ struct TelaEscolherVoz: View {
                 .padding(.bottom, 4)
         }
         .padding(12)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+        .vidroDePainel()
         .padding(.horizontal, 10)
         .padding(.bottom, 10)
     }

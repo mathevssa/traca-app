@@ -66,7 +66,7 @@ struct PainelDeVelocidade: View {
             .padding(.top, 6)
         }
         .padding(EdgeInsets(top: 8, leading: 18, bottom: 22, trailing: 18))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+        .vidroDePainel()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Velocidade")
     }

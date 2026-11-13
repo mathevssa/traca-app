@@ -1,20 +1,24 @@
 import SwiftUI
 
-/// Player da Fase 0, a partir do OUV-001 do canvas: o texto com a frase e a palavra faladas
-/// destacadas, rolando sozinho, e a barra de controles em vidro.
-/// Voz, capítulos, marcações e timer entram na Fase 2.
+/// Player (OUV-001 a OUV-017): o texto com a frase e a palavra faladas destacadas,
+/// rolando sozinho, a barra de controles em vidro e os painéis de velocidade,
+/// capítulos e marcações, vozes e timer.
 struct TelaDoPlayer: View {
     let tocador: Tocador
     @Environment(\.dismiss) private var fechar
     @Environment(EstadoDoApp.self) private var app
     @State private var seguindoAVoz = true
-    @State private var mostrandoVelocidade = false
+    @State private var painel: PainelDoPlayer?
+    @State private var aviso: AvisoDoPlayer?
+    @State private var tarefaDoAviso: Task<Void, Never>?
+
+    private var livro: LivroGuardado? { app.livroDoTocador }
 
     var body: some View {
         ScrollViewReader { rolagem in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 22) {
-                    ForEach(Array(tocador.livro.texto.paragrafos.enumerated()), id: \.offset) { i, p in
+                    ForEach(Array(tocador.texto.paragrafos.enumerated()), id: \.offset) { i, p in
                         // Tocar numa frase leva a voz para o começo dela (fluxo Ouvir um livro).
                         ParagrafoView(paragrafo: p, estado: estado(de: i)) { local in
                             seguindoAVoz = true
@@ -25,7 +29,7 @@ struct TelaDoPlayer: View {
                 }
                 .padding(.horizontal, 26)
                 .padding(.top, 6)
-                .padding(.bottom, 260)
+                .padding(.bottom, 300)
             }
             .scrollIndicators(.hidden)
             .onScrollPhaseChange { _, nova in
@@ -43,6 +47,7 @@ struct TelaDoPlayer: View {
             .overlay(alignment: .bottom) {
                 VStack(spacing: 12) {
                     if !seguindoAVoz {
+                        // OUV-003: a pílula para voltar ao ponto da voz.
                         Button {
                             seguindoAVoz = true
                             withAnimation { rolagem.scrollTo(tocador.paragrafoAtual, anchor: UnitPoint(x: 0, y: 0.3)) }
@@ -60,13 +65,18 @@ struct TelaDoPlayer: View {
                         AvisoFlutuante(texto: aviso.texto, icone: "books.vertical") { app.avisoNoPlayer = nil }
                             .padding(.horizontal, 6)
                     }
+                    if let aviso {
+                        AvisoFlutuante(texto: aviso.texto, icone: aviso.icone) { self.aviso = nil }
+                            .padding(.horizontal, 6)
+                    }
                     if tocador.estado == .erro { avisoDeErro }
-                    BarraDoPlayer(tocador: tocador) {
-                        withAnimation(.spring(duration: 0.35)) { mostrandoVelocidade = true }
+                    BarraDoPlayer(tocador: tocador, nomeDaVoz: nomeDaVoz, marcar: marcar) { painel in
+                        withAnimation(.spring(duration: 0.35)) { self.painel = painel }
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.bottom, 10)
+                .animation(.snappy, value: aviso)
             }
         }
         .background(Cor.fundo)
@@ -74,26 +84,12 @@ struct TelaDoPlayer: View {
         .overlay {
             if tocador.estado == .fim { fimDoLivro }
         }
+        .overlay { paineis }
         .onDisappear { app.avisoNoPlayer = nil }
-        .overlay {
-            // Painel de velocidade (OUV-004) por cima do player, com o fundo levemente escurecido.
-            if mostrandoVelocidade {
-                ZStack(alignment: .bottom) {
-                    Cor.texto.opacity(0.18)
-                        .ignoresSafeArea()
-                        .onTapGesture { fecharVelocidade() }
-                        .accessibilityHidden(true)
-                        .transition(.opacity)
-                    PainelDeVelocidade(tocador: tocador, fechar: fecharVelocidade)
-                        .padding(.horizontal, 10)
-                        .padding(.bottom, 10)
-                        .gesture(DragGesture().onEnded { if $0.translation.height > 60 { fecharVelocidade() } })
-                        .transition(.move(edge: .bottom))
-                }
-            }
-        }
         .toolbar(.hidden, for: .navigationBar)
     }
+
+    // MARK: Topo
 
     private var topo: some View {
         HStack {
@@ -111,10 +107,12 @@ struct TelaDoPlayer: View {
                     .font(Fonte.marca(17, relativoA: .headline))
                     .foregroundStyle(Cor.texto)
                     .lineLimit(1)
-                Text(tituloDoCapitulo)
-                    .font(Fonte.caption)
-                    .foregroundStyle(Cor.textoSecundario)
-                    .lineLimit(1)
+                if let cap = NomesDeCapitulo.cabecalho(tocador.texto, capitulo: tocador.capituloAtual) {
+                    Text(cap)
+                        .font(Fonte.caption)
+                        .foregroundStyle(Cor.textoSecundario)
+                        .lineLimit(1)
+                }
             }
             Spacer()
             Color.clear.frame(width: 44, height: 44)
@@ -122,6 +120,70 @@ struct TelaDoPlayer: View {
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
         .background(Cor.fundo.opacity(0.92))
+    }
+
+    // MARK: Painéis
+
+    @ViewBuilder private var paineis: some View {
+        if let painel {
+            ZStack(alignment: .bottom) {
+                Escurecimento { fecharPainel() }
+                Group {
+                    switch painel {
+                    case .velocidade:
+                        PainelDeVelocidade(tocador: tocador, fechar: fecharPainel)
+                    case .capitulos(let aba):
+                        PainelDeCapitulos(tocador: tocador, livro: livro, abaInicial: aba, fechar: fecharPainel) { p, local in
+                            fecharPainel()
+                            seguindoAVoz = true
+                            tocador.tocar(aPartirDoParagrafo: p, local: local)
+                        } excluirMarcacao: { m in
+                            if let id = livro?.id { app.biblioteca.excluirMarcacao(id, m.id) }
+                        }
+                    case .vozes:
+                        PainelDeVozes(tocador: tocador, fechar: fecharPainel) { id in
+                            EstadoDoApp.idDaVozEscolhida = id
+                            fecharPainel()
+                            // OUV-006: a voz nova só entra no próximo capítulo.
+                            if tocador.trocarVoz(id) { mostrar(.vozNoProximoCapitulo) }
+                        }
+                    case .timer:
+                        PainelDeTimer(tocador: tocador, fechar: fecharPainel)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
+                .padding(.top, painel.ocupaATela ? 150 : 0)
+                .gesture(DragGesture().onEnded { if $0.translation.height > 60 { fecharPainel() } })
+                .transition(.move(edge: .bottom))
+            }
+        }
+    }
+
+    private func fecharPainel() {
+        withAnimation(.spring(duration: 0.3)) { painel = nil }
+    }
+
+    private var nomeDaVoz: String {
+        VozDoIPhone().vozes.first { $0.id == tocador.idDaVozEscolhida }?.nome ?? ""
+    }
+
+    // MARK: Marcar e avisos
+
+    /// Marcar salva o ponto atual na hora, sem pedir confirmação, e mostra "Marcação salva".
+    private func marcar() {
+        guard let id = livro?.id else { return }
+        app.biblioteca.marcar(id, tocador.posicaoAtual, capitulo: tocador.capituloAtual)
+        mostrar(.marcacaoSalva)
+    }
+
+    private func mostrar(_ novo: AvisoDoPlayer) {
+        aviso = novo
+        tarefaDoAviso?.cancel()
+        tarefaDoAviso = Task {
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { aviso = nil }
+        }
     }
 
     /// OUV-016: o livro acabou. Na biblioteca ele passa a mostrar "Terminado".
@@ -153,19 +215,10 @@ struct TelaDoPlayer: View {
                 .padding(.top, 4)
             }
             .padding(EdgeInsets(top: 26, leading: 20, bottom: 20, trailing: 20))
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+            .vidroDePainel()
             .padding(8)
             .accessibilityAddTraits(.isModal)
         }
-    }
-
-    private func fecharVelocidade() {
-        withAnimation(.spring(duration: 0.3)) { mostrandoVelocidade = false }
-    }
-
-    private var tituloDoCapitulo: String {
-        let t = tocador.livro.texto
-        return t.capitulos[t.capitulo(em: Posicao(paragrafo: tocador.paragrafoAtual, deslocamento: 0))].titulo
     }
 
     /// Texto e botão de OUV-011 (fluxo Ouvir um livro, Estados de UI).
@@ -188,6 +241,37 @@ struct TelaDoPlayer: View {
         if i < tocador.paragrafoAtual { return .lido }
         if i > tocador.paragrafoAtual { return .aLer }
         return .atual(tocador.palavraAtual?.paragrafo == i ? tocador.palavraAtual : nil)
+    }
+}
+
+/// Os painéis que sobem da base no player.
+enum PainelDoPlayer: Equatable {
+    case velocidade
+    case capitulos(PainelDeCapitulos.Aba)
+    case vozes
+    case timer
+
+    /// Capítulos e marcações ocupam quase a tela toda (OUV-007).
+    var ocupaATela: Bool { if case .capitulos = self { true } else { false } }
+}
+
+/// Avisos curtos que aparecem por cima da barra e somem sozinhos.
+enum AvisoDoPlayer: Equatable {
+    case marcacaoSalva
+    case vozNoProximoCapitulo
+
+    var texto: String {
+        switch self {
+        case .marcacaoSalva: "Marcação salva"
+        case .vozNoProximoCapitulo: "A nova voz começa no próximo capítulo."
+        }
+    }
+
+    var icone: String {
+        switch self {
+        case .marcacaoSalva: "bookmark.fill"
+        case .vozNoProximoCapitulo: "waveform"
+        }
     }
 }
 
@@ -306,88 +390,4 @@ struct ParagrafoView: View, Equatable {
 /// Marca invisível em cada frase do texto: onde ela começa dentro do parágrafo.
 struct InicioDaFrase: TextAttribute {
     let local: Int
-}
-
-/// Barra de controles em vidro (OUV-001): progresso, velocidade, voltar 15, play, avançar 15.
-struct BarraDoPlayer: View {
-    let tocador: Tocador
-    let abrirVelocidade: () -> Void
-
-    var body: some View {
-        VStack(spacing: 12) {
-            VStack(spacing: 8) {
-                ProgressView(value: min(tocador.tempoNoTrecho, max(tocador.duracaoDoTrecho, 0.01)),
-                             total: max(tocador.duracaoDoTrecho, 0.01))
-                    .tint(Cor.progresso)
-                HStack {
-                    Text(tempo(tocador.tempoNoTrecho))
-                    Spacer()
-                    if tocador.estado == .preparando {
-                        Text("Preparando a voz")
-                    }
-                }
-                .font(Fonte.caption)
-                .foregroundStyle(Cor.textoSecundario)
-                .monospacedDigit()
-            }
-            .padding(.horizontal, 6)
-
-            HStack {
-                Button(action: abrirVelocidade) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "gauge.with.needle")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text(Tocador.rotulo(tocador.velocidade))
-                            .font(Fonte.ui(15, .semibold))
-                            .monospacedDigit()
-                    }
-                    .foregroundStyle(Cor.texto)
-                    .padding(.horizontal, 10)
-                    .frame(minWidth: 60, minHeight: 44)
-                    .background(.white.opacity(0.55), in: Capsule())
-                }
-                .accessibilityLabel("Velocidade: \(Tocador.rotulo(tocador.velocidade).replacingOccurrences(of: "x", with: " vez"))")
-                Spacer()
-                botaoDeSalto("gobackward.15", "Voltar 15 segundos") { tocador.pular(-15) }
-                Spacer()
-                Button { tocador.alternar() } label: {
-                    ZStack {
-                        Circle().fill(Cor.play)
-                        if tocador.estado == .preparando {
-                            ProgressView().tint(Cor.creme)
-                        } else {
-                            Image(systemName: tocador.estado == .tocando ? "pause.fill" : "play.fill")
-                                .font(.system(size: 28))
-                                .foregroundStyle(Cor.creme)
-                        }
-                    }
-                    .frame(width: 76, height: 76)
-                    .shadow(color: Cor.marca.opacity(0.35), radius: 12, y: 8)
-                }
-                .accessibilityLabel(tocador.estado == .tocando ? "Pausar" : "Tocar")
-                Spacer()
-                botaoDeSalto("goforward.15", "Avançar 15 segundos") { tocador.pular(15) }
-                Spacer()
-                Color.clear.frame(width: 60, height: 44)
-            }
-            .padding(.horizontal, 4)
-        }
-        .padding(EdgeInsets(top: 16, leading: 12, bottom: 12, trailing: 12))
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 32))
-    }
-
-    private func botaoDeSalto(_ icone: String, _ rotulo: String, _ acao: @escaping () -> Void) -> some View {
-        Button(action: acao) {
-            Image(systemName: icone)
-                .font(.system(size: 30, weight: .regular))
-                .foregroundStyle(Cor.texto)
-                .frame(width: 52, height: 52)
-        }
-        .accessibilityLabel(rotulo)
-    }
-
-    private func tempo(_ s: TimeInterval) -> String {
-        let t = Int(s.isFinite ? s : 0)
-        return String(format: "%d:%02d", t / 60, t % 60)
-    }
 }
