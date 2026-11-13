@@ -64,6 +64,18 @@ struct BibliotecaTests {
         #expect(Biblioteca(pasta: pasta).livros.isEmpty)
     }
 
+    @Test func guardaEExcluiMarcacoes() async throws {
+        try #require(LivrosDeTeste.existe("dom-casmurro.epub"), "Livro de teste ausente")
+        let b = Biblioteca(pasta: pasta)
+        let livro = try #require(await b.importar([LivrosDeTeste.url("dom-casmurro.epub")]))
+        b.marcar(livro.id, Posicao(paragrafo: 30, deslocamento: 4), capitulo: 2)
+        let salvo = try #require(Biblioteca(pasta: pasta).livros.first)
+        #expect(salvo.marcacoes.count == 1)
+        #expect(salvo.marcacoes[0].posicao == Posicao(paragrafo: 30, deslocamento: 4))
+        b.excluirMarcacao(livro.id, salvo.marcacoes[0].id)
+        #expect(Biblioteca(pasta: pasta).livros.first?.marcacoes.isEmpty == true)
+    }
+
     @Test func formataOTempoComoNoCanvas() {
         #expect(TempoRestante.texto(minutos: 252) == "4 h 12 min")
         #expect(TempoRestante.texto(minutos: 185) == "3 h 05 min")

@@ -16,7 +16,7 @@ struct VozDoIPhoneTests {
     @Test func gravaOAudioComOTempoDeCadaPalavra() async throws {
         let voz = VozDoIPhone()
         let id = try #require(voz.vozes.first?.id)
-        let trecho = Trecho(indice: 0, primeiroParagrafo: 0, ultimoParagrafo: 1, palavras: 34)
+        let trecho = Trecho(inicio: .inicio, ultimoParagrafo: 1, palavras: 34)
         let destino = FileManager.default.temporaryDirectory.appendingPathComponent("trecho-0.caf")
         let audio = try await voz.gerar(trecho, de: texto, voz: id, destino: destino)
 
@@ -44,7 +44,7 @@ struct VozDoIPhoneTests {
         let livro = TextoDoLivro(paragrafos: paragrafos)
         let voz = VozDoIPhone()
         let id = try #require(voz.vozes.first?.id)
-        let trecho = Trecho(indice: 0, primeiroParagrafo: 0, ultimoParagrafo: 5, palavras: 120)
+        let trecho = Trecho(inicio: .inicio, ultimoParagrafo: 5, palavras: 120)
         let destino = FileManager.default.temporaryDirectory.appendingPathComponent("trecho-varios.caf")
         let audio = try await voz.gerar(trecho, de: livro, voz: id, destino: destino)
         #expect(Set(audio.marcas.map(\.paragrafo)) == Set(0...5))

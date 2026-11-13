@@ -23,9 +23,22 @@ nonisolated struct LivroGuardado: Codable, Identifiable, Hashable {
     /// Índice do capítulo onde a posição está.
     var capituloAtual: Int
     var terminado: Bool
+    /// Pontos que o leitor salvou para voltar depois. Opcional para ler bibliotecas guardadas antes das marcações.
+    var marcacoesGuardadas: [Marcacao]?
+
+    var marcacoes: [Marcacao] { marcacoesGuardadas ?? [] }
 
     /// Ordem da biblioteca: pela última abertura; livro nunca aberto usa a data de importação.
     var dataDeOrdem: Date { abertoEm ?? importadoEm }
+}
+
+/// Um ponto do livro salvo pelo leitor (atributo Marcações do objeto Livro):
+/// só a posição, o capítulo e a data, sem nota nem cor.
+nonisolated struct Marcacao: Codable, Identifiable, Hashable {
+    var id = UUID()
+    let posicao: Posicao
+    let capitulo: Int
+    let criadaEm: Date
 }
 
 /// Um arquivo que está sendo importado agora (card "Importando" da biblioteca).
@@ -147,7 +160,7 @@ final class Biblioteca {
                 formato: lido.formato, nomeDoArquivo: origem.lastPathComponent,
                 temCapa: lido.capa.flatMap(UIImage.init(data:)) != nil, impressaoDigital: digital,
                 importadoEm: .now, abertoEm: nil, posicao: .inicio, totalDePalavras: total,
-                palavrasRestantes: total, capituloAtual: 0, terminado: false)
+                palavrasRestantes: total, capituloAtual: 0, terminado: false, marcacoesGuardadas: [])
             livros.append(livro)
             jaImportou = true
             ordenar()
@@ -211,6 +224,22 @@ final class Biblioteca {
     /// "Ouvir de novo" volta a posição para o começo.
     func recomecar(_ id: UUID) {
         atualizar(id) { $0.terminado = false; $0.posicao = .inicio; $0.capituloAtual = 0; $0.palavrasRestantes = $0.totalDePalavras }
+    }
+
+    // MARK: Marcações
+
+    /// Marcar salva o ponto atual na hora, sem pedir confirmação (fluxo Ouvir um livro).
+    func marcar(_ id: UUID, _ posicao: Posicao, capitulo: Int) {
+        atualizar(id) { livro in
+            var lista = livro.marcacoes
+            lista.append(Marcacao(posicao: posicao, capitulo: capitulo, criadaEm: .now))
+            livro.marcacoesGuardadas = lista
+        }
+    }
+
+    /// Excluir uma marcação não muda a posição atual (objeto Livro).
+    func excluirMarcacao(_ id: UUID, _ marcacao: UUID) {
+        atualizar(id) { $0.marcacoesGuardadas = $0.marcacoes.filter { $0.id != marcacao } }
     }
 
     // MARK: Excluir

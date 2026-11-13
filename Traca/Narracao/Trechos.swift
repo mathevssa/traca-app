@@ -1,17 +1,23 @@
 import Foundation
 
-/// Um pedaço do livro de cerca de 5 minutos de voz, sempre terminando no fim de um parágrafo.
-/// É a unidade que vai para o serviço de voz (objetos/narracao.md, atributo Trecho).
+/// O pedaço do livro que vai para a voz (objeto Narração, atributo Trecho).
+/// Começa onde a voz vai tocar e termina perto dos 5 minutos, no fim de um parágrafo
+/// ou na virada de capítulo, o que vier antes.
 nonisolated struct Trecho: Codable, Hashable, Identifiable {
-    /// Posição do trecho no livro: 0 é o primeiro (os 5 minutos grátis).
-    let indice: Int
-    let primeiroParagrafo: Int
+    /// Onde a voz começa: o parágrafo e a letra dentro dele.
+    let inicio: Posicao
     /// Último parágrafo do trecho, incluído.
     let ultimoParagrafo: Int
     let palavras: Int
 
-    var id: Int { indice }
-    var paragrafos: ClosedRange<Int> { primeiroParagrafo...ultimoParagrafo }
+    var id: Posicao { inicio }
+    var primeiroParagrafo: Int { inicio.paragrafo }
+    var paragrafos: ClosedRange<Int> { inicio.paragrafo...ultimoParagrafo }
+
+    /// Se uma posição do livro está dentro deste trecho.
+    func contem(_ p: Posicao) -> Bool {
+        p >= inicio && p.paragrafo <= ultimoParagrafo
+    }
 }
 
 nonisolated enum CortadorDeTrechos {
@@ -24,43 +30,31 @@ nonisolated enum CortadorDeTrechos {
 
     static var palavrasPorTrecho: Int { Int(duracaoAlvo / 60 * palavrasPorMinuto) }
 
-    /// Corta o livro inteiro em trechos. O corte só depende do texto, então é sempre o mesmo
-    /// para o mesmo livro: isso garante no máximo uma narração por trecho.
-    /// O corte nunca acontece no meio de um parágrafo, mesmo que o parágrafo seja muito longo.
-    static func cortar(_ texto: TextoDoLivro) -> [Trecho] {
-        let alvo = palavrasPorTrecho
-        var trechos: [Trecho] = []
-        var inicio = 0
+    /// O trecho que começa numa posição: vai juntando parágrafos até passar dos 5 minutos
+    /// e para antes do começo de um capítulo novo. Nunca corta no meio de um parágrafo.
+    static func trecho(aPartirDe inicio: Posicao, em texto: TextoDoLivro) -> Trecho? {
+        let total = texto.paragrafos.count
+        guard inicio.paragrafo >= 0, inicio.paragrafo < total else { return nil }
+        let comecosDeCapitulo = Set(texto.capitulos.map(\.primeiroParagrafo))
         var soma = 0
-        for (i, p) in texto.paragrafos.enumerated() {
-            soma += TextoDoLivro.contarPalavras(p.texto)
-            if soma >= alvo {
-                trechos.append(Trecho(indice: trechos.count, primeiroParagrafo: inicio, ultimoParagrafo: i, palavras: soma))
-                inicio = i + 1
-                soma = 0
-            }
-        }
-        if inicio < texto.paragrafos.count {
-            // Sobra muito curta no fim do livro (menos de um minuto) entra no trecho anterior.
-            if let ultimo = trechos.last, soma < alvo / 5 {
-                trechos[trechos.count - 1] = Trecho(indice: ultimo.indice, primeiroParagrafo: ultimo.primeiroParagrafo,
-                                                     ultimoParagrafo: texto.paragrafos.count - 1, palavras: ultimo.palavras + soma)
+        var i = inicio.paragrafo
+        while true {
+            let t = texto.paragrafos[i].texto
+            if i == inicio.paragrafo {
+                let ns = t as NSString
+                soma += TextoDoLivro.contarPalavras(ns.substring(from: min(max(0, inicio.deslocamento), ns.length)))
             } else {
-                trechos.append(Trecho(indice: trechos.count, primeiroParagrafo: inicio, ultimoParagrafo: texto.paragrafos.count - 1, palavras: soma))
+                soma += TextoDoLivro.contarPalavras(t)
             }
+            let proximo = i + 1
+            if proximo >= total || soma >= palavrasPorTrecho || comecosDeCapitulo.contains(proximo) { break }
+            i = proximo
         }
-        return trechos
+        return Trecho(inicio: inicio, ultimoParagrafo: i, palavras: soma)
     }
 
-    /// O trecho que contém um parágrafo.
-    static func trecho(doParagrafo p: Int, em trechos: [Trecho]) -> Trecho? {
-        var baixo = 0, alto = trechos.count - 1
-        while baixo <= alto {
-            let meio = (baixo + alto) / 2
-            if trechos[meio].ultimoParagrafo < p { baixo = meio + 1 }
-            else if trechos[meio].primeiroParagrafo > p { alto = meio - 1 }
-            else { return trechos[meio] }
-        }
-        return nil
+    /// O trecho que vem logo depois de outro, começando no parágrafo seguinte.
+    static func proximo(depoisDe trecho: Trecho, em texto: TextoDoLivro) -> Trecho? {
+        self.trecho(aPartirDe: Posicao(paragrafo: trecho.ultimoParagrafo + 1, deslocamento: 0), em: texto)
     }
 }

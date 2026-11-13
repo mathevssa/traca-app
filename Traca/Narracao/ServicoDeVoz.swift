@@ -13,7 +13,7 @@ nonisolated struct MarcaDeTempo: Codable, Hashable {
 
 /// O resultado de gerar a voz de um trecho: o arquivo de áudio e o tempo de cada palavra.
 nonisolated struct AudioGerado: Codable, Hashable {
-    let trecho: Int
+    let trecho: Trecho
     let voz: String
     let arquivo: URL
     let duracao: TimeInterval
@@ -36,23 +36,26 @@ protocol ServicoDeVoz {
 }
 
 extension ServicoDeVoz {
-    /// O texto que vai para a voz: os parágrafos do trecho, separados por linha em branco,
-    /// e onde cada parágrafo começa nesse texto (para traduzir a posição das palavras de volta).
-    static func montarTexto(_ trecho: Trecho, de texto: TextoDoLivro) -> (texto: String, inicios: [(paragrafo: Int, inicio: Int)]) {
+    /// O texto que vai para a voz: os parágrafos do trecho, separados por linha em branco
+    /// (o primeiro a partir de onde a voz começa), e onde cada um começa nesse texto,
+    /// para traduzir a posição das palavras de volta.
+    static func montarTexto(_ trecho: Trecho, de texto: TextoDoLivro) -> (texto: String, inicios: [(paragrafo: Int, inicio: Int, base: Int)]) {
         var s = ""
-        var inicios: [(Int, Int)] = []
+        var inicios: [(Int, Int, Int)] = []
         for i in trecho.paragrafos {
             if !s.isEmpty { s += "\n\n" }
-            inicios.append((i, (s as NSString).length))
-            s += texto.paragrafos[i].texto
+            let ns = texto.paragrafos[i].texto as NSString
+            let base = i == trecho.inicio.paragrafo ? min(max(0, trecho.inicio.deslocamento), ns.length) : 0
+            inicios.append((i, (s as NSString).length, base))
+            s += ns.substring(from: base)
         }
         return (s, inicios)
     }
 
     /// Traduz uma posição no texto enviado à voz para (parágrafo, posição no parágrafo).
-    static func localizar(_ posicao: Int, em inicios: [(paragrafo: Int, inicio: Int)]) -> (paragrafo: Int, local: Int) {
+    static func localizar(_ posicao: Int, em inicios: [(paragrafo: Int, inicio: Int, base: Int)]) -> (paragrafo: Int, local: Int) {
         var atual = inicios[0]
         for i in inicios where i.inicio <= posicao { atual = i }
-        return (atual.paragrafo, posicao - atual.inicio)
+        return (atual.paragrafo, posicao - atual.inicio + atual.base)
     }
 }

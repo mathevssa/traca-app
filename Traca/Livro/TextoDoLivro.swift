@@ -85,6 +85,23 @@ nonisolated struct TextoDoLivro: Codable, Hashable {
         self.capitulos = caps
     }
 
+    /// Arquivos do Project Gutenberg trazem a licença em inglês no começo e no fim.
+    /// Ela é retirada e o livro começa no texto da obra (objeto Livro, decisão de 12/11/2026).
+    func semLicencaDoGutenberg() -> TextoDoLivro {
+        func eh(_ marca: String, _ p: Paragrafo) -> Bool {
+            p.texto.range(of: "\\*{3} ?" + marca + " OF (THE|THIS) PROJECT GUTENBERG", options: [.regularExpression, .caseInsensitive]) != nil
+        }
+        guard let fimDoCabecalho = paragrafos.firstIndex(where: { eh("START", $0) }) else { return self }
+        let comeco = fimDoCabecalho + 1
+        let fim = paragrafos.lastIndex(where: { eh("END", $0) }) ?? paragrafos.count
+        guard comeco < fim else { return self }
+        let caps = capitulos.compactMap { c -> Capitulo? in
+            guard c.primeiroParagrafo >= comeco, c.primeiroParagrafo < fim else { return nil }
+            return Capitulo(titulo: c.titulo, primeiroParagrafo: c.primeiroParagrafo - comeco)
+        }
+        return TextoDoLivro(paragrafos: Array(paragrafos[comeco..<fim]), capitulos: caps)
+    }
+
     /// Junta espaços repetidos e quebras de linha soltas num espaço só.
     static func normalizarEspacos(_ s: String) -> String {
         var saida = ""

@@ -49,6 +49,7 @@ nonisolated enum LeitorDeLivros {
         case .rtf: livro = try LeitorRTF.ler(dados)
         case .pdf: livro = try LeitorPDF.ler(dados)
         }
+        livro.texto = livro.texto.semLicencaDoGutenberg()
         guard !livro.texto.paragrafos.isEmpty else { throw ErroDeLeitura.corrompido }
         // Atributo Título (objetos/livro.md): sem título, usa o nome do arquivo sem a extensão.
         if (livro.titulo ?? "").trimmingCharacters(in: .whitespaces).isEmpty {

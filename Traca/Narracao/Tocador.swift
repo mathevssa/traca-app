@@ -5,13 +5,20 @@ import UIKit
 
 /// Toca a narração de um livro, trecho por trecho, e diz qual palavra está sendo falada.
 ///
-/// - Gera cada trecho só quando vai ser ouvido, e o próximo enquanto o atual toca,
-///   para a voz não parar na virada (objeto Narração).
+/// - Gera cada trecho só quando vai ser ouvido, a partir de onde a voz vai tocar,
+///   e o próximo enquanto o atual toca, para a voz não parar na virada (objeto Narração).
 /// - Tenta de novo sozinho até 3 vezes quando a geração falha.
-/// - Continua tocando com a tela bloqueada, com os controles do iOS na tela bloqueada e nos fones.
+/// - Troca de voz no meio do livro vale a partir do próximo capítulo.
+/// - Timer de sono, e a voz continua com a tela bloqueada, com os controles do iOS.
 @Observable
 final class Tocador {
     enum Estado: Equatable { case parado, preparando, tocando, pausado, erro, fim }
+
+    /// Opções do timer de sono (fluxo Ouvir um livro): 15, 30 e 45 minutos, 1 hora e fim do capítulo.
+    enum Timer: Hashable {
+        case minutos(Int)
+        case fimDoCapitulo
+    }
 
     private(set) var estado: Estado = .parado
     /// A palavra que a voz está falando agora.
@@ -53,33 +60,53 @@ final class Tocador {
     var aoTerminar: (() -> Void)?
 
     let livro: LivroLido
-    let trechos: [Trecho]
     private let voz: ServicoDeVoz
-    private let idDaVoz: String
+    /// A voz usada para gerar a narração agora.
+    private(set) var idDaVoz: String
+    /// Voz escolhida no meio de um capítulo: só entra no próximo capítulo (objeto Narração, atributo Voz).
+    private var vozPendente: (id: String, capitulo: Int, trecho: Posicao?)?
+    /// A voz que o botão de voz mostra: a escolhida, mesmo antes de começar a tocar.
+    var idDaVozEscolhida: String { vozPendente?.id ?? idDaVoz }
+
+    private(set) var timer: Timer?
+    private(set) var fimDoTimer: Date?
+    private var capituloDoTimer: Int?
+    private var tarefaDoTimer: Task<Void, Never>?
+
     private let pasta: URL
     private let player = AVQueuePlayer()
-    private var audios: [Int: AudioGerado] = [:]
-    private var tarefas: [Int: Task<AudioGerado, Error>] = [:]
+
+    private struct Chave: Hashable {
+        let inicio: Posicao
+        let voz: String
+    }
+    private var audios: [Chave: AudioGerado] = [:]
+    private var tarefas: [Chave: Task<AudioGerado, Error>] = [:]
     private var fila: Task<Void, Never>?
-    private var trechoDoItem: [ObjectIdentifier: Int] = [:]
-    private var enfileirados: Set<Int> = []
+    private var chaveDoItem: [ObjectIdentifier: Chave] = [:]
+    /// O último trecho posto na fila do tocador.
+    private var ultimoNaFila: Trecho?
+    private var preparandoProximo = false
     private var pedido = 0
     private var observadorDeTempo: Any?
     private var observadores: [NSObjectProtocol] = []
-    private var ultimoPedidoComErro: (paragrafo: Int, local: Int)?
+    private var ultimoPedidoComErro: Posicao?
     private var saltoPendente: TimeInterval?
     /// Onde a voz deve começar no primeiro play: a posição salva do livro.
     private var localInicial: Int
+    /// Palavras acumuladas até cada parágrafo, para o progresso do capítulo.
+    private let somas: [Int]
 
     init(livro: LivroLido, voz: ServicoDeVoz, idDaVoz: String, posicao: Posicao? = nil) {
         self.livro = livro
-        self.trechos = CortadorDeTrechos.cortar(livro.texto)
         self.voz = voz
         self.idDaVoz = idDaVoz
         // Posição atual (objeto Livro): começa no início do livro e depois continua de onde parou.
         let p = min(posicao?.paragrafo ?? 0, max(0, livro.texto.paragrafos.count - 1))
         self.paragrafoAtual = p
         self.localInicial = posicao?.paragrafo == p ? posicao?.deslocamento ?? 0 : 0
+        var acumulado = 0
+        self.somas = livro.texto.paragrafos.map { acumulado += TextoDoLivro.contarPalavras($0.texto); return acumulado }
         pasta = FileManager.default.temporaryDirectory.appendingPathComponent("narracoes/\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
         player.actionAtItemEnd = .advance
@@ -90,36 +117,51 @@ final class Tocador {
         configurarControlesDaTelaBloqueada()
     }
 
-    var trechoAtual: Trecho? { CortadorDeTrechos.trecho(doParagrafo: paragrafoAtual, em: trechos) }
+    var texto: TextoDoLivro { livro.texto }
+    var capituloAtual: Int { texto.capitulo(em: Posicao(paragrafo: paragrafoAtual, deslocamento: 0)) }
+    /// Onde a voz está agora, com a palavra dentro do parágrafo.
+    var posicaoAtual: Posicao {
+        Posicao(paragrafo: paragrafoAtual, deslocamento: palavraAtual?.paragrafo == paragrafoAtual ? palavraAtual?.local ?? 0 : 0)
+    }
 
     // MARK: Comandos
 
-    /// Leva a voz para o começo de um parágrafo (ou de uma palavra dentro dele) e começa a tocar.
+    /// Leva a voz para um ponto do livro e começa a tocar. Se ali ainda não há narração,
+    /// gera os 5 minutos a partir desse ponto, sem gerar o que ficou para trás.
     func tocar(aPartirDoParagrafo p: Int, local: Int = 0) {
-        guard let trecho = CortadorDeTrechos.trecho(doParagrafo: p, em: trechos) else { return }
+        guard p >= 0, p < texto.paragrafos.count else { return }
         pedido += 1
         let meuPedido = pedido
         player.pause()
         player.removeAllItems()
-        trechoDoItem = [:]
-        enfileirados = []
+        chaveDoItem = [:]
+        ultimoNaFila = nil
+        preparandoProximo = false
         paragrafoAtual = p
         palavraAtual = nil
         estado = .preparando
         ultimoPedidoComErro = nil
+        let alvo = Posicao(paragrafo: p, deslocamento: local)
         Task {
             do {
-                let audio = try await audioComTentativas(trecho)
+                let vozDoTrecho = vozParaTrecho(comecandoEm: alvo)
+                let audio: AudioGerado
+                if let pronto = audioPronto(cobrindo: alvo, voz: vozDoTrecho) {
+                    audio = pronto
+                } else {
+                    guard let trecho = CortadorDeTrechos.trecho(aPartirDe: alvo, em: texto) else { return }
+                    audio = try await audioComTentativas(trecho, voz: vozDoTrecho)
+                }
                 guard meuPedido == pedido else { return }
                 enfileirar(audio)
                 let inicio = audio.marcas.first { ($0.paragrafo, $0.local) >= (p, local) }?.inicio ?? 0
                 await player.seek(to: CMTime(seconds: inicio, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
                 guard meuPedido == pedido else { return }
                 comecar()
-                prepararProximo(depoisDe: trecho.indice)
+                prepararProximo()
             } catch {
                 guard meuPedido == pedido else { return }
-                ultimoPedidoComErro = (p, local)
+                ultimoPedidoComErro = alvo
                 estado = .erro
             }
         }
@@ -150,18 +192,16 @@ final class Tocador {
     }
 
     private func avisarPosicao() {
-        let local = palavraAtual?.paragrafo == paragrafoAtual ? palavraAtual?.local ?? 0 : 0
-        aoMudarPosicao?(Posicao(paragrafo: paragrafoAtual, deslocamento: local))
+        aoMudarPosicao?(posicaoAtual)
     }
 
     func tentarDeNovo() {
-        let alvo = ultimoPedidoComErro ?? (paragrafoAtual, 0)
-        tocar(aPartirDoParagrafo: alvo.paragrafo, local: alvo.local)
+        let alvo = ultimoPedidoComErro ?? Posicao(paragrafo: paragrafoAtual, deslocamento: 0)
+        tocar(aPartirDoParagrafo: alvo.paragrafo, local: alvo.deslocamento)
     }
 
     /// Volta ou avança 15 segundos dentro do trecho que está tocando.
-    /// Toques seguidos somam a partir do último ponto pedido, mesmo que o salto anterior
-    /// ainda não tenha terminado: dois toques são sempre 30 segundos.
+    /// Toques seguidos somam a partir do último ponto pedido: dois toques são sempre 30 segundos.
     func pular(_ segundos: TimeInterval) {
         guard let item = player.currentItem else { return }
         let partida = saltoPendente ?? item.currentTime().seconds
@@ -175,13 +215,125 @@ final class Tocador {
         }
     }
 
+    // MARK: Voz
+
+    /// Troca a voz. Com o livro tocando, a voz nova entra no próximo capítulo, para a voz
+    /// não mudar no meio de um capítulo; em livro de um capítulo só, no próximo trecho.
+    /// Devolve `true` quando a troca fica para depois (o app mostra o aviso).
+    @discardableResult
+    func trocarVoz(_ id: String) -> Bool {
+        guard id != idDaVozEscolhida else { return false }
+        guard estado != .parado else {
+            idDaVoz = id
+            vozPendente = nil
+            return false
+        }
+        if id == idDaVoz {
+            vozPendente = nil
+            return false
+        }
+        let trechoAtual = player.currentItem.flatMap { chaveDoItem[ObjectIdentifier($0)] }?.inicio
+        vozPendente = (id, capituloAtual, trechoAtual)
+        // O que já estava na fila depois do trecho atual foi gerado com a voz antiga: sai da fila.
+        for item in player.items().dropFirst() {
+            chaveDoItem[ObjectIdentifier(item)] = nil
+            player.remove(item)
+        }
+        if let atual = trechoAtual, let a = audios.values.first(where: { $0.trecho.inicio == atual }) {
+            ultimoNaFila = a.trecho
+        }
+        preparandoProximo = false
+        prepararProximo()
+        return true
+    }
+
+    /// A voz de um trecho novo. A voz escolhida no meio de um capítulo vale para
+    /// trechos de outro capítulo (ou, em livro de um capítulo só, para outro trecho).
+    private func vozParaTrecho(comecandoEm inicio: Posicao) -> String {
+        guard let pendente = vozPendente else { return idDaVoz }
+        let outro = texto.capitulos.count > 1
+            ? texto.capitulo(em: inicio) != pendente.capitulo
+            : inicio != pendente.trecho
+        guard outro else { return idDaVoz }
+        idDaVoz = pendente.id
+        vozPendente = nil
+        return idDaVoz
+    }
+
+    // MARK: Timer de sono
+
+    func ligarTimer(_ opcao: Timer) {
+        tarefaDoTimer?.cancel()
+        timer = opcao
+        switch opcao {
+        case .minutos(let m):
+            capituloDoTimer = nil
+            let fim = Date.now.addingTimeInterval(TimeInterval(m * 60))
+            fimDoTimer = fim
+            tarefaDoTimer = Task { [weak self] in
+                try? await Task.sleep(until: .now + .seconds(fim.timeIntervalSinceNow))
+                guard !Task.isCancelled else { return }
+                self?.pausar()
+                self?.desligarTimer()
+            }
+        case .fimDoCapitulo:
+            fimDoTimer = nil
+            capituloDoTimer = capituloAtual
+        }
+    }
+
+    func desligarTimer() {
+        tarefaDoTimer?.cancel()
+        tarefaDoTimer = nil
+        timer = nil
+        fimDoTimer = nil
+        capituloDoTimer = nil
+    }
+
+    // MARK: Progresso do capítulo
+
+    private func palavrasAntes(_ paragrafo: Int) -> Int { paragrafo > 0 && paragrafo <= somas.count ? somas[paragrafo - 1] : 0 }
+
+    /// Palavras do capítulo atual: total, já ouvidas e que faltam (estimativa para a barra).
+    var progressoDoCapitulo: (total: Int, ouvidas: Int) {
+        let caps = texto.capitulos
+        guard !caps.isEmpty else { return (0, 0) }
+        let i = capituloAtual
+        let inicio = caps[i].primeiroParagrafo
+        let fim = i + 1 < caps.count ? caps[i + 1].primeiroParagrafo : texto.paragrafos.count
+        let total = palavrasAntes(fim) - palavrasAntes(inicio)
+        var ouvidas = palavrasAntes(paragrafoAtual) - palavrasAntes(inicio)
+        if let m = palavraAtual, m.paragrafo == paragrafoAtual {
+            ouvidas += TextoDoLivro.contarPalavras((texto.paragrafos[paragrafoAtual].texto as NSString).substring(to: min(m.local, (texto.paragrafos[paragrafoAtual].texto as NSString).length)))
+        }
+        return (max(total, 1), min(max(ouvidas, 0), total))
+    }
+
+    /// Leva a voz para um ponto do capítulo atual, pela fração da barra (arrastar a barra de progresso).
+    func irPara(fracaoDoCapitulo f: Double) {
+        let caps = texto.capitulos
+        guard !caps.isEmpty else { return }
+        let i = capituloAtual
+        let inicio = caps[i].primeiroParagrafo
+        let fim = i + 1 < caps.count ? caps[i + 1].primeiroParagrafo : texto.paragrafos.count
+        let alvo = palavrasAntes(inicio) + Int(Double(palavrasAntes(fim) - palavrasAntes(inicio)) * min(max(f, 0), 1))
+        let p = (inicio..<fim).first { somas[$0] > alvo } ?? max(inicio, fim - 1)
+        tocar(aPartirDoParagrafo: p)
+    }
+
     // MARK: Geração
 
+    /// Um áudio já pronto que cobre esta posição, com esta voz. Parte do livro com narração
+    /// pronta não é gerada de novo (objeto Narração, atributo Trecho).
+    private func audioPronto(cobrindo p: Posicao, voz: String) -> AudioGerado? {
+        audios.first { $0.key.voz == voz && $0.value.trecho.contem(p) }?.value
+    }
+
     /// Gera um trecho, tentando de novo sozinho até 3 vezes (objeto Narração, ciclo de vida).
-    private func audioComTentativas(_ trecho: Trecho) async throws -> AudioGerado {
+    private func audioComTentativas(_ trecho: Trecho, voz: String) async throws -> AudioGerado {
         var ultimoErro: Error?
         for tentativa in 1...3 {
-            do { return try await audio(trecho) } catch {
+            do { return try await audio(trecho, voz: voz) } catch {
                 ultimoErro = error
                 if tentativa < 3 { try? await Task.sleep(for: .seconds(1)) }
             }
@@ -189,38 +341,43 @@ final class Tocador {
         throw ultimoErro!
     }
 
-    /// Cada trecho é gerado uma vez só. As gerações acontecem uma de cada vez, em fila.
-    private func audio(_ trecho: Trecho) async throws -> AudioGerado {
-        if let pronto = audios[trecho.indice] { return pronto }
-        if let andando = tarefas[trecho.indice] { return try await andando.value }
+    /// As gerações acontecem uma de cada vez, em fila.
+    private func audio(_ trecho: Trecho, voz idVoz: String) async throws -> AudioGerado {
+        let chave = Chave(inicio: trecho.inicio, voz: idVoz)
+        if let pronto = audios[chave] { return pronto }
+        if let andando = tarefas[chave] { return try await andando.value }
         let anterior = fila
-        let destino = pasta.appendingPathComponent("trecho-\(trecho.indice).caf")
-        let (voz, texto, id) = (self.voz, livro.texto, idDaVoz)
+        let destino = pasta.appendingPathComponent("\(UUID().uuidString).caf")
+        let (servico, texto) = (self.voz, livro.texto)
         let tarefa = Task {
             await anterior?.value
-            return try await voz.gerar(trecho, de: texto, voz: id, destino: destino)
+            return try await servico.gerar(trecho, de: texto, voz: idVoz, destino: destino)
         }
-        tarefas[trecho.indice] = tarefa
+        tarefas[chave] = tarefa
         fila = Task { _ = try? await tarefa.value }
         do {
             let a = try await tarefa.value
-            audios[trecho.indice] = a
-            tarefas[trecho.indice] = nil
+            audios[chave] = a
+            tarefas[chave] = nil
             return a
         } catch {
-            tarefas[trecho.indice] = nil
+            tarefas[chave] = nil
             throw error
         }
     }
 
-    /// Gera o próximo trecho enquanto o atual toca e já põe na fila do tocador.
-    private func prepararProximo(depoisDe indice: Int) {
-        let proximo = indice + 1
-        guard proximo < trechos.count, !enfileirados.contains(proximo) else { return }
+    /// Gera o trecho seguinte enquanto o atual toca e já põe na fila do tocador.
+    /// Só prepara um à frente: o que não vai ser ouvido não é gerado.
+    private func prepararProximo() {
+        guard !preparandoProximo, player.items().count <= 1,
+              let ultimo = ultimoNaFila, let proximo = CortadorDeTrechos.proximo(depoisDe: ultimo, em: texto) else { return }
+        preparandoProximo = true
         let meuPedido = pedido
+        let vozDoTrecho = vozParaTrecho(comecandoEm: proximo.inicio)
         Task {
-            guard let audio = try? await audioComTentativas(trechos[proximo]), meuPedido == pedido,
-                  !enfileirados.contains(proximo) else { return }
+            defer { if meuPedido == pedido { preparandoProximo = false } }
+            guard let audio = try? await audioComTentativas(proximo, voz: vozDoTrecho), meuPedido == pedido,
+                  ultimoNaFila == ultimo else { return }
             enfileirar(audio)
             // A voz chegou ao fim do trecho antes de o próximo ficar pronto: continua agora.
             if estado == .preparando { comecar() }
@@ -230,8 +387,8 @@ final class Tocador {
     private func enfileirar(_ audio: AudioGerado) {
         let item = AVPlayerItem(url: audio.arquivo)
         item.audioTimePitchAlgorithm = .timeDomain // muda a velocidade sem mudar o tom da voz
-        trechoDoItem[ObjectIdentifier(item)] = audio.trecho
-        enfileirados.insert(audio.trecho)
+        chaveDoItem[ObjectIdentifier(item)] = Chave(inicio: audio.trecho.inicio, voz: audio.voz)
+        ultimoNaFila = audio.trecho
         player.insert(item, after: player.items().last)
     }
 
@@ -253,8 +410,8 @@ final class Tocador {
 
     /// Acha a palavra que está sendo falada agora, pelo tempo do áudio.
     private func atualizar(tempo: TimeInterval) {
-        guard let item = player.currentItem, let indice = trechoDoItem[ObjectIdentifier(item)],
-              let audio = audios[indice], tempo.isFinite else { return }
+        guard let item = player.currentItem, let chave = chaveDoItem[ObjectIdentifier(item)],
+              let audio = audios[chave], tempo.isFinite else { return }
         tempoNoTrecho = tempo
         duracaoDoTrecho = audio.duracao
         let marcas = audio.marcas
@@ -269,23 +426,30 @@ final class Tocador {
         if marca.paragrafo != paragrafoAtual {
             paragrafoAtual = marca.paragrafo
             avisarPosicao()
+            // Timer "fim do capítulo": para quando a voz entra no capítulo seguinte.
+            if let c = capituloDoTimer, capituloAtual != c {
+                pausar()
+                desligarTimer()
+            }
         }
-        prepararProximo(depoisDe: indice)
+        prepararProximo()
     }
 
     private func observarFimDosItens() {
         let o = NotificationCenter.default.addObserver(forName: AVPlayerItem.didPlayToEndTimeNotification, object: nil, queue: .main) { [weak self] aviso in
             MainActor.assumeIsolated {
                 guard let self, let item = aviso.object as? AVPlayerItem,
-                      let indice = self.trechoDoItem[ObjectIdentifier(item)] else { return }
-                self.trechoDoItem[ObjectIdentifier(item)] = nil
-                if indice == self.trechos.count - 1 {
+                      let chave = self.chaveDoItem[ObjectIdentifier(item)],
+                      let audio = self.audios[chave] else { return }
+                self.chaveDoItem[ObjectIdentifier(item)] = nil
+                if audio.trecho.ultimoParagrafo >= self.texto.paragrafos.count - 1 {
                     self.estado = .fim
+                    self.desligarTimer()
                     self.aoTerminar?()
-                } else if !self.enfileirados.contains(indice + 1) {
+                } else if self.player.items().count <= 1 {
                     // O próximo trecho ainda não ficou pronto: "Preparando a voz".
                     self.estado = .preparando
-                    self.prepararProximo(depoisDe: indice)
+                    self.prepararProximo()
                 }
             }
         }
@@ -345,9 +509,8 @@ final class Tocador {
             MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue,
         ]
         if let autor = livro.autor { info[MPMediaItemPropertyArtist] = autor }
-        let caps = livro.texto.capitulos
-        let cap = caps[livro.texto.capitulo(em: Posicao(paragrafo: paragrafoAtual, deslocamento: 0))]
-        if !cap.titulo.isEmpty { info[MPMediaItemPropertyAlbumTitle] = cap.titulo }
+        let caps = texto.capitulos
+        if !caps.isEmpty, !caps[capituloAtual].titulo.isEmpty { info[MPMediaItemPropertyAlbumTitle] = caps[capituloAtual].titulo }
         if let item = player.currentItem {
             info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = item.currentTime().seconds
             if item.duration.isNumeric { info[MPMediaItemPropertyPlaybackDuration] = item.duration.seconds }
@@ -361,6 +524,7 @@ final class Tocador {
     func encerrar() {
         if estado == .tocando || estado == .pausado { avisarPosicao() }
         pedido += 1
+        desligarTimer()
         player.pause()
         player.removeAllItems()
         if let o = observadorDeTempo { player.removeTimeObserver(o) }

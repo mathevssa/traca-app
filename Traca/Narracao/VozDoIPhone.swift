@@ -45,7 +45,7 @@ final class VozDoIPhone: ServicoDeVoz {
             let (p, local) = Self.localizar(b.intervalo.location, em: inicios)
             return MarcaDeTempo(paragrafo: p, local: local, tamanho: b.intervalo.length, inicio: Double(b.amostra) / taxa)
         }
-        return AudioGerado(trecho: trecho.indice, voz: voz, arquivo: destino,
+        return AudioGerado(trecho: trecho, voz: voz, arquivo: destino,
                            duracao: Double(amostras) / taxa, marcas: marcas.sorted { $0.inicio < $1.inicio })
     }
 }
