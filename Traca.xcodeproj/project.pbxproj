@@ -17,9 +17,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A58A04FDE306EC7A765B661F /* Projeto.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Projeto.xcconfig; sourceTree = "<group>"; };
 		5141EFFF35ACD6C51F274E4D /* Traca.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Traca.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		68D128FAC7073081D8355714 /* TracaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TracaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A58A04FDE306EC7A765B661F /* Config/Projeto.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Projeto.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -69,7 +69,7 @@
 		186495F7DA296BF880DF3A22 = {
 			isa = PBXGroup;
 			children = (
-				A58A04FDE306EC7A765B661F /* Projeto.xcconfig */,
+				A58A04FDE306EC7A765B661F /* Config/Projeto.xcconfig */,
 				3DFE442710E429386E53D077 /* Traca */,
 				CEC4290FD49D87B0F83D52CD /* TracaTests */,
 				D71BD8A0B6A6AA54EDBA6454 /* Products */,
@@ -293,7 +293,7 @@
 		};
 		AB015BEF96F21DB37A5B2A9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Projeto.xcconfig */;
+			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Config/Projeto.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -354,7 +354,7 @@
 		};
 		FA2B7CA42DF6B57AEE93B14C /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Projeto.xcconfig */;
+			baseConfigurationReference = A58A04FDE306EC7A765B661F /* Config/Projeto.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;

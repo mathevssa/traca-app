@@ -6,6 +6,7 @@ import SwiftUI
 struct TelaDoPlayer: View {
     let tocador: Tocador
     @Environment(\.dismiss) private var fechar
+    @Environment(EstadoDoApp.self) private var app
     @State private var seguindoAVoz = true
     @State private var mostrandoVelocidade = false
 
@@ -37,7 +38,7 @@ struct TelaDoPlayer: View {
             }
             .onAppear {
                 rolagem.scrollTo(tocador.paragrafoAtual, anchor: UnitPoint(x: 0, y: 0.3))
-                if tocador.estado == .parado { tocador.tocar(aPartirDoParagrafo: tocador.paragrafoAtual) }
+                if tocador.estado == .parado { tocador.comecarDaPosicaoSalva() }
             }
             .overlay(alignment: .bottom) {
                 VStack(spacing: 12) {
@@ -54,6 +55,11 @@ struct TelaDoPlayer: View {
                         }
                         .glassEffect(.regular, in: Capsule())
                     }
+                    if let aviso = app.avisoNoPlayer {
+                        // IMP-004: o livro já estava na biblioteca, e é ele que abre.
+                        AvisoFlutuante(texto: aviso.texto, icone: "books.vertical") { app.avisoNoPlayer = nil }
+                            .padding(.horizontal, 6)
+                    }
                     if tocador.estado == .erro { avisoDeErro }
                     BarraDoPlayer(tocador: tocador) {
                         withAnimation(.spring(duration: 0.35)) { mostrandoVelocidade = true }
@@ -65,6 +71,10 @@ struct TelaDoPlayer: View {
         }
         .background(Cor.fundo)
         .safeAreaInset(edge: .top) { topo }
+        .overlay {
+            if tocador.estado == .fim { fimDoLivro }
+        }
+        .onDisappear { app.avisoNoPlayer = nil }
         .overlay {
             // Painel de velocidade (OUV-004) por cima do player, com o fundo levemente escurecido.
             if mostrandoVelocidade {
@@ -112,6 +122,41 @@ struct TelaDoPlayer: View {
         .padding(.horizontal, 12)
         .padding(.bottom, 4)
         .background(Cor.fundo.opacity(0.92))
+    }
+
+    /// OUV-016: o livro acabou. Na biblioteca ele passa a mostrar "Terminado".
+    private var fimDoLivro: some View {
+        ZStack(alignment: .bottom) {
+            Escurecimento {}
+            VStack(spacing: 18) {
+                CapaDoLivro(titulo: tocador.livro.titulo ?? "", imagem: tocador.livro.capa.flatMap(UIImage.init(data:)), raio: 8, tamanhoDoTitulo: 10)
+                    .frame(width: 72, height: 104)
+                Text("Você terminou \(tocador.livro.titulo ?? "")")
+                    .font(Fonte.marca(28, relativoA: .title))
+                    .tracking(-0.56)
+                    .foregroundStyle(Cor.texto)
+                    .multilineTextAlignment(.center)
+                VStack(spacing: 10) {
+                    BotaoPrincipal(titulo: "Voltar para a biblioteca") { fechar() }
+                    Button {
+                        if let id = app.livroDoTocador?.id { app.biblioteca.recomecar(id) }
+                        tocador.tocar(aPartirDoParagrafo: 0)
+                    } label: {
+                        Text("Ouvir de novo")
+                            .font(Fonte.headline)
+                            .foregroundStyle(Cor.texto)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(.white.opacity(0.55), in: Capsule())
+                            .overlay(Capsule().strokeBorder(Cor.texto.opacity(0.08)))
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .padding(EdgeInsets(top: 26, leading: 20, bottom: 20, trailing: 20))
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 34))
+            .padding(8)
+            .accessibilityAddTraits(.isModal)
+        }
     }
 
     private func fecharVelocidade() {

@@ -14,7 +14,7 @@ final class VozDoIPhone: ServicoDeVoz {
 
     var vozes: [OpcaoDeVoz] {
         AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language == "pt-BR" }
+            .filter { $0.language == "pt-BR" && !$0.voiceTraits.contains(.isNoveltyVoice) }
             .sorted { $0.quality.rawValue > $1.quality.rawValue }
             .map { OpcaoDeVoz(id: $0.identifier, nome: $0.name) }
     }
