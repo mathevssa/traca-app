@@ -32,13 +32,25 @@ final class Tocador {
         if t.hasSuffix(".") { t.removeLast() }
         return t.replacingOccurrences(of: ".", with: ",") + "x"
     }
-    var velocidade: Float = 1 {
+    /// A velocidade vale para todos os livros (fluxo Ouvir um livro), então fica guardada no aparelho.
+    var velocidade: Float = Tocador.velocidadeGuardada {
         didSet {
+            UserDefaults.standard.set(velocidade, forKey: "velocidade")
             player.defaultRate = velocidade
             if estado == .tocando { player.rate = velocidade }
             atualizarAgoraTocando()
         }
     }
+
+    static var velocidadeGuardada: Float {
+        let v = UserDefaults.standard.float(forKey: "velocidade")
+        return velocidades.contains(v) ? v : 1
+    }
+
+    /// Avisa onde a voz está, para a biblioteca guardar a posição atual.
+    var aoMudarPosicao: ((Posicao) -> Void)?
+    /// Avisa que o livro acabou.
+    var aoTerminar: (() -> Void)?
 
     let livro: LivroLido
     let trechos: [Trecho]
@@ -56,16 +68,22 @@ final class Tocador {
     private var observadores: [NSObjectProtocol] = []
     private var ultimoPedidoComErro: (paragrafo: Int, local: Int)?
     private var saltoPendente: TimeInterval?
+    /// Onde a voz deve começar no primeiro play: a posição salva do livro.
+    private var localInicial: Int
 
-    init(livro: LivroLido, voz: ServicoDeVoz, idDaVoz: String) {
+    init(livro: LivroLido, voz: ServicoDeVoz, idDaVoz: String, posicao: Posicao? = nil) {
         self.livro = livro
         self.trechos = CortadorDeTrechos.cortar(livro.texto)
         self.voz = voz
         self.idDaVoz = idDaVoz
-        self.paragrafoAtual = livro.texto.paragrafos.firstIndex { $0.tipo == .corpo } ?? 0
+        // Posição atual (objeto Livro): começa no início do livro e depois continua de onde parou.
+        let p = min(posicao?.paragrafo ?? 0, max(0, livro.texto.paragrafos.count - 1))
+        self.paragrafoAtual = p
+        self.localInicial = posicao?.paragrafo == p ? posicao?.deslocamento ?? 0 : 0
         pasta = FileManager.default.temporaryDirectory.appendingPathComponent("narracoes/\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: pasta, withIntermediateDirectories: true)
         player.actionAtItemEnd = .advance
+        player.defaultRate = velocidade
         observarTempo()
         observarFimDosItens()
         observarInterrupcoes()
@@ -111,17 +129,29 @@ final class Tocador {
         switch estado {
         case .tocando: pausar()
         case .pausado: comecar()
-        case .parado, .fim: tocar(aPartirDoParagrafo: estado == .fim ? 0 : paragrafoAtual)
+        case .parado: comecarDaPosicaoSalva()
+        case .fim: tocar(aPartirDoParagrafo: 0)
         case .erro: tentarDeNovo()
         case .preparando: break
         }
+    }
+
+    /// Primeiro play: a voz continua exatamente de onde o leitor parou.
+    func comecarDaPosicaoSalva() {
+        tocar(aPartirDoParagrafo: paragrafoAtual, local: localInicial)
     }
 
     func pausar() {
         guard estado == .tocando else { return }
         player.pause()
         estado = .pausado
+        avisarPosicao()
         atualizarAgoraTocando()
+    }
+
+    private func avisarPosicao() {
+        let local = palavraAtual?.paragrafo == paragrafoAtual ? palavraAtual?.local ?? 0 : 0
+        aoMudarPosicao?(Posicao(paragrafo: paragrafoAtual, deslocamento: local))
     }
 
     func tentarDeNovo() {
@@ -236,7 +266,10 @@ final class Tocador {
         guard achada >= 0 else { return }
         let marca = marcas[achada]
         if marca != palavraAtual { palavraAtual = marca }
-        if marca.paragrafo != paragrafoAtual { paragrafoAtual = marca.paragrafo }
+        if marca.paragrafo != paragrafoAtual {
+            paragrafoAtual = marca.paragrafo
+            avisarPosicao()
+        }
         prepararProximo(depoisDe: indice)
     }
 
@@ -248,6 +281,7 @@ final class Tocador {
                 self.trechoDoItem[ObjectIdentifier(item)] = nil
                 if indice == self.trechos.count - 1 {
                     self.estado = .fim
+                    self.aoTerminar?()
                 } else if !self.enfileirados.contains(indice + 1) {
                     // O próximo trecho ainda não ficou pronto: "Preparando a voz".
                     self.estado = .preparando
@@ -325,6 +359,7 @@ final class Tocador {
     }
 
     func encerrar() {
+        if estado == .tocando || estado == .pausado { avisarPosicao() }
         pedido += 1
         player.pause()
         player.removeAllItems()
