@@ -87,6 +87,9 @@ struct TelaConta: View {
         VStack(alignment: .leading, spacing: 8) {
             secao("Assinatura") {
                 VStack(alignment: .leading, spacing: 0) {
+                    if s == .semAssinatura {
+                        semAssinatura
+                    } else {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
                             Text(plano(s)?.nome ?? "").font(Fonte.ui(17, .semibold)).foregroundStyle(Cor.texto)
@@ -104,9 +107,12 @@ struct TelaConta: View {
                         }
                     }
                     .padding(EdgeInsets(top: 16, leading: 16, bottom: 14, trailing: 16))
+                    }
                     if mostraAssinar(s) {
-                        BotaoPrincipal(titulo: "Assinar") { app.mostrandoAssinar = true }
-                            .padding(EdgeInsets(top: 0, leading: 16, bottom: 16, trailing: 16))
+                        BotaoPrincipal(titulo: s == .semAssinatura && app.loja.elegivelAoTeste ? "Começar 7 dias grátis" : "Assinar") {
+                            app.mostrandoAssinar = true
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 16, bottom: 16, trailing: 16))
                     } else {
                         Rectangle().fill(Cor.fundoSutil).frame(height: 1).padding(.horizontal, 16)
                         Button { gerenciando = true } label: {
@@ -129,6 +135,45 @@ struct TelaConta: View {
                     .font(Fonte.caption)
                     .foregroundStyle(Cor.textoSecundario)
                     .padding(.horizontal, 4)
+            }
+        }
+    }
+
+    /// Quem entrou e ainda não assinou: o que é a assinatura e quanto custa.
+    /// PROPOSTA de texto, a aprovar pelo Matheus: o Atlas não descreve este estado da Conta.
+    private var semAssinatura: some View {
+        let loja = app.loja
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Você ainda não assinou")
+                .font(Fonte.ui(17, .semibold))
+                .foregroundStyle(Cor.texto)
+            if let mensal = loja.preco(.mensal), let anual = loja.preco(.anual) {
+                VStack(alignment: .leading, spacing: 6) {
+                    linhaDePlano("Plano mensal", mensal, detalhe: nil)
+                    linhaDePlano("Plano anual", anual, detalhe: loja.equivalenteMensal.map { "Equivale a \($0)" })
+                }
+            } else {
+                Text("Carregando os preços…")
+                    .font(Fonte.ui(14, relativoA: .subheadline))
+                    .foregroundStyle(Cor.textoSecundario)
+            }
+            Text(loja.elegivelAoTeste
+                 ? "Comece com 7 dias grátis. Cancele quando quiser nos Ajustes do iPhone."
+                 : "Cancele quando quiser nos Ajustes do iPhone.")
+                .font(Fonte.ui(14, relativoA: .subheadline))
+                .foregroundStyle(Paleta.neutro700)
+        }
+        .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
+        .task { await loja.carregarProdutos() }
+    }
+
+    private func linhaDePlano(_ nome: String, _ preco: String, detalhe: String?) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(nome).font(Fonte.ui(15, .medium)).foregroundStyle(Cor.texto)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(preco).font(Fonte.ui(15, .semibold)).foregroundStyle(Cor.texto)
+                if let detalhe { Text(detalhe).font(Fonte.caption).foregroundStyle(Cor.textoSecundario) }
             }
         }
     }
