@@ -19,13 +19,20 @@ struct TelaBiblioteca: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 cabecalho
-                if !vazia { campoDeBusca.padding(.top, 12) }
+                if !vazia && !antesDoLogin { campoDeBusca.padding(.top, 12) }
+                if app.acesso == .expirada && !emBusca { avisoDeExpirada.padding(.top, 14) }
                 if vazia {
-                    BibliotecaVazia { escolhendoArquivo = true }
+                    BibliotecaVazia { tocarEmImportar() }
                 } else if emBusca {
                     resultadosDaBusca
                 } else {
-                    if let livro = continuarOuvindo {
+                    if antesDoLogin, let livro = biblioteca.livros.first {
+                        // CMC-011: antes do login, o convite para entrar e continuar ouvindo.
+                        CardEntrarParaContinuar(livro: livro, capa: biblioteca.capa(de: livro)) {
+                            app.painelDeEntrar = .fimDosMinutos(titulo: livro.titulo)
+                        }
+                        .padding(.top, 14)
+                    } else if let livro = continuarOuvindo {
                         VStack(alignment: .leading, spacing: 10) {
                             Sobretitulo(texto: "Continuar ouvindo")
                             CardContinuarOuvindo(livro: livro, capa: biblioteca.capa(de: livro), velocidade: velocidade) {
@@ -58,6 +65,40 @@ struct TelaBiblioteca: View {
     }
 
     private var vazia: Bool { biblioteca.livros.isEmpty && biblioteca.importando.isEmpty }
+    private var antesDoLogin: Bool { app.contas.atual == nil }
+
+    /// Antes do teste só um livro pode ser importado; com a assinatura expirada, importar leva ao paywall.
+    private func tocarEmImportar() {
+        if app.acesso == .expirada {
+            app.mostrandoAssinar = true
+        } else if app.acesso == .antesDoTeste && !biblioteca.livros.isEmpty {
+            app.pedirParaContinuar()
+        } else {
+            escolhendoArquivo = true
+        }
+    }
+
+    /// ASS-002: a assinatura acabou, os livros continuam.
+    private var avisoDeExpirada: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.circle").font(.system(size: 20, weight: .semibold)).foregroundStyle(Cor.alerta)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sua assinatura acabou").font(Fonte.ui(15, .semibold)).foregroundStyle(Cor.texto)
+                Text("Seus livros continuam aqui. Assine para voltar a ouvir.").font(Fonte.caption).foregroundStyle(Paleta.neutro700)
+            }
+            Spacer(minLength: 0)
+            Button { app.mostrandoAssinar = true } label: {
+                Text("Assinar")
+                    .font(Fonte.ui(15, .semibold))
+                    .foregroundStyle(Cor.textoSobreAcao)
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 44)
+                    .background(Cor.acao, in: Capsule())
+            }
+        }
+        .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 14))
+        .background(Color(hex: 0xF8E7C4), in: RoundedRectangle(cornerRadius: 20))
+    }
 
     /// O último livro aberto e ainda não terminado.
     private var continuarOuvindo: LivroGuardado? {
@@ -74,7 +115,7 @@ struct TelaBiblioteca: View {
                 .foregroundStyle(Cor.texto)
             Spacer()
             HStack(spacing: 4) {
-                Button { escolhendoArquivo = true } label: {
+                Button { tocarEmImportar() } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Cor.textoSobreAcao)
@@ -82,12 +123,16 @@ struct TelaBiblioteca: View {
                         .background(Cor.acao, in: Circle())
                 }
                 .accessibilityLabel("Importar livro")
-                // A tela Conta (CON-001) chega com o login, na fase de conta e assinatura.
-                Image(systemName: "person")
-                    .font(.system(size: 19, weight: .medium))
-                    .foregroundStyle(Cor.texto)
-                    .frame(width: 44, height: 44)
-                    .accessibilityLabel("Conta")
+                // Com conta: a tela Conta. Antes do login: Entrar · Já tenho conta (CMC-011).
+                Button {
+                    if app.contas.atual != nil { app.caminho.append(.conta) } else { app.painelDeEntrar = .jaTenhoConta }
+                } label: {
+                    Image(systemName: "person")
+                        .font(.system(size: 19, weight: .medium))
+                        .foregroundStyle(Cor.texto)
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Conta")
             }
             .padding(3)
             .glassEffect(.regular, in: Capsule())
@@ -381,6 +426,41 @@ struct CardContinuarOuvindo: View {
     private var detalhe: String {
         let faltam = "faltam " + TempoRestante.texto(palavras: livro.palavrasRestantes, velocidade: velocidade)
         return livro.capituloAtual > 0 ? "Cap. \(livro.capituloAtual) · \(faltam)" : faltam
+    }
+}
+
+/// CMC-011: o livro importado antes do login e o convite para entrar.
+struct CardEntrarParaContinuar: View {
+    let livro: LivroGuardado
+    let capa: UIImage?
+    let continuar: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            CapaDoLivro(titulo: livro.titulo, imagem: capa, raio: 8, tamanhoDoTitulo: 10)
+                .frame(width: 72, height: 104)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Continue ouvindo \(livro.titulo)")
+                    .font(Fonte.marca(19, relativoA: .title3))
+                    .tracking(-0.38)
+                    .foregroundStyle(Cor.texto)
+                Text("Entre na sua conta para continuar de onde parou.")
+                    .font(Fonte.ui(14, relativoA: .subheadline))
+                    .foregroundStyle(Paleta.neutro700)
+                Button(action: continuar) {
+                    Text("Continuar")
+                        .font(Fonte.ui(15, .semibold))
+                        .foregroundStyle(Cor.textoSobreAcao)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 44)
+                        .background(Cor.acao, in: Capsule())
+                }
+                .padding(.top, 4)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Cor.fundoElevado, in: RoundedRectangle(cornerRadius: 20))
     }
 }
 

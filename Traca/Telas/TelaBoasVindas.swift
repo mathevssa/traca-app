@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Boas-vindas (CMC-001), com a importação do primeiro livro (CMC-002) e o erro (CMC-003).
-/// "Ouvir o livro de amostra" entra com a narração da amostra, e "Já tenho conta" com o login.
+/// "Ouvir o livro de amostra" entra com a narração da amostra.
 struct TelaBoasVindas: View {
     @Environment(EstadoDoApp.self) private var app
     @State private var escolhendoArquivo = false
@@ -113,6 +113,11 @@ struct TelaBoasVindas: View {
                 BotaoPrincipal(titulo: erro == nil ? "Escolher um livro do iPhone" : "Escolher outro livro",
                                icone: "doc.badge.plus") { escolhendoArquivo = true }
             }
+            // "Ouvir o livro de amostra" entra com a narração da amostra, gerada com a voz da Inworld.
+            Button("Já tenho conta") { app.painelDeEntrar = .jaTenhoConta }
+                .font(Fonte.ui(16, .semibold))
+                .foregroundStyle(Cor.link)
+                .frame(minHeight: 44)
         }
     }
 

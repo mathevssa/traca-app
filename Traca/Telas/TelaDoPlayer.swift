@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 /// Player (OUV-001 a OUV-017): o texto com a frase e a palavra faladas destacadas,
@@ -11,6 +12,7 @@ struct TelaDoPlayer: View {
     @State private var painel: PainelDoPlayer?
     @State private var aviso: AvisoDoPlayer?
     @State private var tarefaDoAviso: Task<Void, Never>?
+    @State private var atualizandoPagamento = false
 
     private var livro: LivroGuardado? { app.livroDoTocador }
 
@@ -69,6 +71,14 @@ struct TelaDoPlayer: View {
                         AvisoFlutuante(texto: aviso.texto, icone: aviso.icone) { self.aviso = nil }
                             .padding(.horizontal, 6)
                     }
+                    if app.avisoDoTeto {
+                        // PROPOSTA de texto, a aprovar pelo Matheus: o Atlas não tem a mensagem do teto do teste.
+                        AvisoFlutuante(texto: "Você usou as 3 horas de voz do teste grátis. O que já foi preparado continua tocando, e o resto do livro volta quando a assinatura começar.", icone: "hourglass") {
+                            app.avisoDoTeto = false
+                        }
+                        .padding(.horizontal, 6)
+                    }
+                    if app.avisoDeCarencia { avisoDeCarencia }
                     if tocador.estado == .erro { avisoDeErro }
                     BarraDoPlayer(tocador: tocador, nomeDaVoz: nomeDaVoz, marcar: marcar) { painel in
                         withAnimation(.spring(duration: 0.35)) { self.painel = painel }
@@ -92,6 +102,63 @@ struct TelaDoPlayer: View {
     // MARK: Topo
 
     private var topo: some View {
+        VStack(spacing: 8) {
+            cabecalho
+            if app.acesso == .antesDoTeste { contadorGratis }
+        }
+        .padding(.bottom, 4)
+        .background(Cor.fundo.opacity(0.92))
+    }
+
+    /// CMC-005 e CMC-007: quanto falta dos 5 minutos grátis, ou o aviso de que acabaram.
+    private var contadorGratis: some View {
+        let m = app.minutosGratis
+        let fracao = min(m.tocados / MinutosGratis.limite, 1)
+        return HStack(spacing: 10) {
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Cor.textoSecundario.opacity(0.25))
+                    Capsule().fill(m.acabaram ? Cor.textoSecundario : Cor.marca).frame(width: g.size.width * fracao)
+                }
+            }
+            .frame(width: 44, height: 4)
+            Text(m.acabaram ? "Os 5 minutos grátis acabaram" : "Faltam \(FormatoDeTempo.relogio(m.restantes)) dos 5 minutos grátis")
+                .font(Fonte.ui(13, .semibold, relativoA: .caption))
+                .monospacedDigit()
+                .foregroundStyle(Cor.texto)
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 36)
+        .glassEffect(.regular, in: Capsule())
+        .accessibilityElement(children: .combine)
+    }
+
+    /// ASS-003: a cobrança não passou; o leitor ouve o que já foi gerado durante a carência.
+    private var avisoDeCarencia: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "creditcard").foregroundStyle(Cor.alerta)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Não conseguimos renovar sua assinatura").font(Fonte.ui(15, .semibold)).foregroundStyle(Cor.texto)
+                Text("Houve um problema com o pagamento. Para continuar ouvindo o livro, atualize a forma de pagamento.")
+                    .font(Fonte.ui(14, relativoA: .subheadline)).foregroundStyle(Paleta.neutro700)
+                Button { atualizandoPagamento = true } label: {
+                    HStack(spacing: 6) {
+                        Text("Atualizar pagamento nos Ajustes")
+                        Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .semibold))
+                    }
+                    .font(Fonte.ui(14, .semibold, relativoA: .subheadline))
+                    .foregroundStyle(Cor.link)
+                    .frame(minHeight: 36)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Color(hex: 0xF8E7C4), in: RoundedRectangle(cornerRadius: 16))
+        .manageSubscriptionsSheet(isPresented: $atualizandoPagamento)
+    }
+
+    private var cabecalho: some View {
         HStack {
             Button { fechar() } label: {
                 Image(systemName: "chevron.left")
@@ -118,8 +185,6 @@ struct TelaDoPlayer: View {
             Color.clear.frame(width: 44, height: 44)
         }
         .padding(.horizontal, 12)
-        .padding(.bottom, 4)
-        .background(Cor.fundo.opacity(0.92))
     }
 
     // MARK: Painéis
