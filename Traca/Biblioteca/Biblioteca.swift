@@ -72,11 +72,14 @@ final class Biblioteca {
 
     /// Se o leitor já importou algum livro alguma vez. Antes disso, o app abre em Boas-vindas.
     var jaImportou: Bool {
-        get { UserDefaults.standard.bool(forKey: "jaImportou") || !livros.isEmpty }
-        set { UserDefaults.standard.set(newValue, forKey: "jaImportou") }
+        get { !livros.isEmpty || FileManager.default.fileExists(atPath: pasta.appendingPathComponent(".ja-importou").path) }
+        set {
+            let marca = pasta.appendingPathComponent(".ja-importou")
+            if newValue { FileManager.default.createFile(atPath: marca.path, contents: Data()) } else { try? FileManager.default.removeItem(at: marca) }
+        }
     }
 
-    private let pasta: URL
+    let pasta: URL
     private var capas: [UUID: UIImage] = [:]
     /// Palavras acumuladas até cada parágrafo, para calcular o "faltam" sem ler o livro de novo.
     private var somas: [UUID: [Int]] = [:]
@@ -240,6 +243,32 @@ final class Biblioteca {
     /// Excluir uma marcação não muda a posição atual (objeto Livro).
     func excluirMarcacao(_ id: UUID, _ marcacao: UUID) {
         atualizar(id) { $0.marcacoesGuardadas = $0.marcacoes.filter { $0.id != marcacao } }
+    }
+
+    // MARK: Passar para a conta
+
+    /// No primeiro login, o livro importado antes, a posição e as marcações passam para a conta
+    /// sem o leitor fazer nada (objeto Conta). O aparelho fica vazio.
+    func incorporar(_ outra: Biblioteca) {
+        for livro in outra.livros {
+            guard !livros.contains(where: { $0.impressaoDigital == livro.impressaoDigital }) else { continue }
+            try? FileManager.default.moveItem(at: outra.pasta(de: livro.id), to: pasta(de: livro.id))
+            livros.append(livro)
+        }
+        if !outra.livros.isEmpty { jaImportou = true }
+        outra.esvaziar()
+        ordenar()
+        salvar()
+    }
+
+    /// Tira todos os livros deste aparelho.
+    func esvaziar() {
+        for livro in livros { try? FileManager.default.removeItem(at: pasta(de: livro.id)) }
+        livros = []
+        capas = [:]
+        somas = [:]
+        jaImportou = false
+        salvar()
     }
 
     // MARK: Excluir

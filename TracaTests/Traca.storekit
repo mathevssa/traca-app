@@ -1,0 +1,106 @@
+{
+  "identifier" : "6D0C5F1E-3B7A-4C1D-9E2F-7A1B2C3D4E5F",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6740000000",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "pt_BR",
+    "_storefront" : "BRA",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21500001",
+      "localizations" : [
+        {
+          "description" : "Assinatura do Traça",
+          "displayName" : "Traça",
+          "locale" : "pt_BR"
+        }
+      ],
+      "name" : "Traça",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "429.90",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6740000002",
+          "introductoryOffer" : {
+            "internalID" : "6740000012",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Ouça seus livros com o texto acompanhando a voz.",
+              "displayName" : "Plano anual",
+              "locale" : "pt_BR"
+            }
+          ],
+          "productID" : "app.traca.ios.anual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Plano anual",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "44.90",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6740000001",
+          "introductoryOffer" : {
+            "internalID" : "6740000011",
+            "numberOfPeriods" : 1,
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Ouça seus livros com o texto acompanhando a voz.",
+              "displayName" : "Plano mensal",
+              "locale" : "pt_BR"
+            }
+          ],
+          "productID" : "app.traca.ios.mensal",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Plano mensal",
+          "subscriptionGroupID" : "21500001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

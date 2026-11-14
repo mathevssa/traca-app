@@ -58,6 +58,14 @@ final class Tocador {
     var aoMudarPosicao: ((Posicao) -> Void)?
     /// Avisa que o livro acabou.
     var aoTerminar: (() -> Void)?
+    /// Pergunta se este trecho pode ser gerado agora (5 minutos grátis, carência, teto do teste).
+    var podeGerar: ((Trecho) -> Bool)?
+    /// Avisa que a voz parou porque o próximo trecho não pode ser gerado.
+    var aoNegarGeracao: (() -> Void)?
+    /// Avisa quantos segundos de relógio a voz tocou (os 5 minutos contam o tempo em que a voz tocou).
+    var aoTocar: ((TimeInterval) -> Void)?
+    /// Avisa cada trecho novo gerado, com a duração do áudio.
+    var aoGerar: ((AudioGerado) -> Void)?
 
     let livro: LivroLido
     private let voz: ServicoDeVoz
@@ -96,6 +104,10 @@ final class Tocador {
     private var localInicial: Int
     /// Palavras acumuladas até cada parágrafo, para o progresso do capítulo.
     private let somas: [Int]
+    private var ultimoTempo: TimeInterval?
+    private var proximoNegado = false
+    /// Parar quando a voz sair desta frase (fim dos 5 minutos grátis).
+    private var pararDepoisDaFrase: (paragrafo: Int, fim: Int, entao: () -> Void)?
 
     init(livro: LivroLido, voz: ServicoDeVoz, idDaVoz: String, posicao: Posicao? = nil) {
         self.livro = livro
@@ -137,6 +149,7 @@ final class Tocador {
         chaveDoItem = [:]
         ultimoNaFila = nil
         preparandoProximo = false
+        proximoNegado = false
         paragrafoAtual = p
         palavraAtual = nil
         estado = .preparando
@@ -150,6 +163,11 @@ final class Tocador {
                     audio = pronto
                 } else {
                     guard let trecho = CortadorDeTrechos.trecho(aPartirDe: alvo, em: texto) else { return }
+                    if let pode = podeGerar, !pode(trecho) {
+                        estado = .pausado
+                        aoNegarGeracao?()
+                        return
+                    }
                     audio = try await audioComTentativas(trecho, voz: vozDoTrecho)
                 }
                 guard meuPedido == pedido else { return }
@@ -213,6 +231,25 @@ final class Tocador {
             atualizar(tempo: alvo)
             atualizarAgoraTocando()
         }
+    }
+
+    /// Os 5 minutos grátis acabaram: a voz termina a frase que está falando e para.
+    func pararNoFimDaFrase(entao: @escaping () -> Void) {
+        guard pararDepoisDaFrase == nil else { return }
+        guard let m = palavraAtual, m.paragrafo < texto.paragrafos.count else {
+            pausar()
+            entao()
+            return
+        }
+        let p = texto.paragrafos[m.paragrafo]
+        let fim = p.frases.first { NSLocationInRange(m.local, $0) }.map { $0.location + $0.length } ?? (m.local + m.tamanho)
+        pararDepoisDaFrase = (m.paragrafo, fim, entao)
+    }
+
+    /// Depois que a assinatura libera, o que tinha sido negado pode ser gerado de novo.
+    func liberarGeracao() {
+        proximoNegado = false
+        prepararProximo()
     }
 
     // MARK: Voz
@@ -359,6 +396,7 @@ final class Tocador {
             let a = try await tarefa.value
             audios[chave] = a
             tarefas[chave] = nil
+            aoGerar?(a)
             return a
         } catch {
             tarefas[chave] = nil
@@ -369,8 +407,12 @@ final class Tocador {
     /// Gera o trecho seguinte enquanto o atual toca e já põe na fila do tocador.
     /// Só prepara um à frente: o que não vai ser ouvido não é gerado.
     private func prepararProximo() {
-        guard !preparandoProximo, player.items().count <= 1,
+        guard !preparandoProximo, !proximoNegado, player.items().count <= 1,
               let ultimo = ultimoNaFila, let proximo = CortadorDeTrechos.proximo(depoisDe: ultimo, em: texto) else { return }
+        if audioPronto(cobrindo: proximo.inicio, voz: idDaVozEscolhida) == nil, let pode = podeGerar, !pode(proximo) {
+            proximoNegado = true
+            return
+        }
         preparandoProximo = true
         let meuPedido = pedido
         let vozDoTrecho = vozParaTrecho(comecandoEm: proximo.inicio)
@@ -412,6 +454,10 @@ final class Tocador {
     private func atualizar(tempo: TimeInterval) {
         guard let item = player.currentItem, let chave = chaveDoItem[ObjectIdentifier(item)],
               let audio = audios[chave], tempo.isFinite else { return }
+        if estado == .tocando, let anterior = ultimoTempo, tempo > anterior, tempo - anterior < 1 {
+            aoTocar?((tempo - anterior) / Double(max(velocidade, 0.25)))
+        }
+        ultimoTempo = tempo
         tempoNoTrecho = tempo
         duracaoDoTrecho = audio.duracao
         let marcas = audio.marcas
@@ -422,6 +468,13 @@ final class Tocador {
         }
         guard achada >= 0 else { return }
         let marca = marcas[achada]
+        if let parar = pararDepoisDaFrase, marca.paragrafo != parar.paragrafo || marca.local >= parar.fim {
+            // A voz para no fim da frase, nunca no meio de uma palavra (fluxo Começar a usar o Traça).
+            pararDepoisDaFrase = nil
+            pausar()
+            parar.entao()
+            return
+        }
         if marca != palavraAtual { palavraAtual = marca }
         if marca.paragrafo != paragrafoAtual {
             paragrafoAtual = marca.paragrafo
@@ -446,6 +499,10 @@ final class Tocador {
                     self.estado = .fim
                     self.desligarTimer()
                     self.aoTerminar?()
+                } else if self.proximoNegado {
+                    // O próximo trecho não pode ser gerado agora (5 minutos, carência ou teto do teste).
+                    self.estado = .pausado
+                    self.aoNegarGeracao?()
                 } else if self.player.items().count <= 1 {
                     // O próximo trecho ainda não ficou pronto: "Preparando a voz".
                     self.estado = .preparando

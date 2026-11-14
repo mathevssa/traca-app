@@ -22,6 +22,11 @@ O app é construído em fases, cada uma testada no iPhone do Matheus antes da pr
 - Fontes da marca (Young Serif e Hanken Grotesk) ficam em `Traca/Fontes`, com as licenças OFL.
 - Livros de teste ficam fora do Git, em `~/traca-livros-teste` (fora de Documentos, que o macOS bloqueia para o simulador). Sem eles, os testes de leitura são pulados.
 
+## Conta e assinatura enquanto não há conta paga da Apple
+
+- **Assinatura:** funciona de verdade com a loja de teste do Xcode (`TracaTests/Traca.storekit`), com o Plano mensal (R$ 44,90), o Plano anual (R$ 429,90) e 7 dias grátis. Ela só vale quando o app é aberto pelo botão ▶ do Xcode. Nada é cobrado. No Xcode, o menu **Debug › StoreKit › Manage Transactions** mostra as compras e deixa simular renovação, cobrança recusada e expiração.
+- **Login:** PROVISÓRIO. "Entrar com a Apple" e "Entrar com o Google" criam uma conta de teste só no aparelho. O login de verdade depende da conta paga de desenvolvedor e do servidor.
+
 ## Ferramentas
 
 - App nativo em SwiftUI, só iPhone, com o Liquid Glass do iOS 26.
